@@ -15,3 +15,6 @@ npm-debug.log*
 
 # Editor / tooling
 .claude/.cc-writes/
+
+# Cotal mesh runtime state + credentials (NEVER commit)
+.cotal/

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cotal · Agent Command Deck</title>
+<style>
+  :root{
+    --bg:#05060d; --panel:rgba(16,19,34,.72); --panel-solid:#0d1020;
+    --line:rgba(120,140,200,.14); --text:#eaf0ff; --dim:#8b93b8; --faint:#5a6288;
+    --gold:#f5b642; --accent:#7c8cff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;
+    -webkit-font-smoothing:antialiased}
+  #app{display:flex;flex-direction:column;height:100vh;width:100vw}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:18px;padding:14px 26px;
+    border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(20,24,44,.9),rgba(8,10,20,.6));
+    z-index:5;backdrop-filter:blur(8px)}
+  .brand{display:flex;align-items:center;gap:14px}
+  .emblem{width:46px;height:46px;border-radius:12px;object-fit:cover;
+    box-shadow:0 0 24px rgba(245,182,66,.5);border:1px solid rgba(245,182,66,.4)}
+  .brand h1{font-size:22px;letter-spacing:2px;margin:0;font-weight:800}
+  .brand .sub{font-size:12px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
+  .brand .sub b{color:var(--accent)}
+  .stats{margin-left:auto;display:flex;gap:12px;align-items:center}
+  .chip{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:7px 14px;min-width:78px;text-align:center}
+  .chip .n{font-size:20px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+  .chip .l{font-size:9.5px;color:var(--faint);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px}
+  .live{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:2px;color:#5ef2a0;
+    text-transform:uppercase;font-weight:700}
+  .live .dot{width:10px;height:10px;border-radius:50%;background:#5ef2a0;box-shadow:0 0 12px #5ef2a0;
+    animation:blink 1.4s infinite}
+  @keyframes blink{50%{opacity:.25}}
+
+  /* ---------- main ---------- */
+  main{flex:1;display:grid;grid-template-columns:1fr 380px;min-height:0}
+  #stage{position:relative;overflow:hidden}
+  #mesh{position:absolute;inset:0;width:100%;height:100%}
+  #stageBg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.35}
+  #stageVig{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 45%,transparent 45%,rgba(3,4,10,.9) 100%);pointer-events:none}
+  .stage-title{position:absolute;top:18px;left:24px;z-index:3;pointer-events:none}
+  .stage-title .k{font-size:11px;letter-spacing:3px;color:var(--faint);text-transform:uppercase}
+  .stage-title .v{font-size:15px;color:var(--dim);margin-top:3px}
+
+  /* agent node */
+  .node{position:absolute;transform:translate(-50%,-50%);text-align:center;z-index:2;
+    transition:filter .4s, opacity .5s;cursor:default;width:120px}
+  .node .avatar-wrap{position:relative;width:78px;height:78px;margin:0 auto}
+  .node .ring{position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--c);
+    box-shadow:0 0 22px var(--c);opacity:.9}
+  .node img{width:78px;height:78px;border-radius:50%;object-fit:cover;
+    background:#11142a;border:1px solid rgba(255,255,255,.08)}
+  .node .name{font-weight:700;font-size:14px;margin-top:9px;letter-spacing:.3px}
+  .node .role{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:1px}
+  .node .pstat{display:inline-flex;align-items:center;gap:5px;margin-top:5px;font-size:10px;
+    padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+    color:var(--dim);letter-spacing:.5px}
+  .node .pstat .pd{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+  .node .task{margin-top:7px;font-size:10px;color:var(--c);max-width:130px;
+    background:rgba(0,0,0,.35);border:1px solid var(--c);border-radius:8px;padding:4px 7px;
+    display:none;line-height:1.25;box-shadow:0 0 14px color-mix(in srgb,var(--c) 40%,transparent)}
+  /* states */
+  .node.working .ring{animation:spin 2.4s linear infinite;border-style:dashed}
+  .node.working .pstat{color:#5ef2a0;border-color:rgba(94,242,160,.4)}
+  .node.working .pstat .pd{background:#5ef2a0;box-shadow:0 0 8px #5ef2a0}
+  .node.working .avatar-wrap{animation:bob 2.2s ease-in-out infinite}
+  .node.working .task{display:block}
+  .node.idle .pstat .pd{background:#f5b642;box-shadow:0 0 8px #f5b642}
+  .node.idle .pstat{color:#f5b642}
+  .node.offline{opacity:.32;filter:grayscale(1)}
+  .node.offline .ring{border-color:#4a4f66;box-shadow:none;animation:none}
+  .node.offline .pstat{color:#ff6b6b;border-color:rgba(255,107,107,.4)}
+  .node.offline .pstat .pd{background:#ff6b6b;box-shadow:0 0 8px #ff6b6b;animation:none}
+  .node.dying{animation:deathshake .5s}
+  .node.reborn .ring{animation:rebornpulse 1.1s ease-out 2}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes bob{50%{transform:translateY(-5px)}}
+  @keyframes deathshake{0%,100%{transform:translate(-50%,-50%)}20%{transform:translate(-53%,-52%) rotate(-4deg)}
+    40%{transform:translate(-47%,-48%) rotate(4deg)}60%{transform:translate(-52%,-51%) rotate(-3deg)}}
+  @keyframes rebornpulse{0%{box-shadow:0 0 0 0 var(--c)}100%{box-shadow:0 0 0 40px transparent}}
+
+  /* ---------- right rail ---------- */
+  aside{border-left:1px solid var(--line);background:linear-gradient(180deg,rgba(12,15,30,.9),rgba(7,8,18,.95));
+    display:flex;flex-direction:column;min-height:0}
+  .tabs{display:flex;border-bottom:1px solid var(--line)}
+  .tab{flex:1;padding:13px;text-align:center;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--faint);cursor:pointer;font-weight:700;border-bottom:2px solid transparent}
+  .tab.on{color:var(--text);border-bottom-color:var(--accent);background:rgba(124,140,255,.07)}
+  .feed{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:9px}
+  .feed::-webkit-scrollbar{width:6px}.feed::-webkit-scrollbar-thumb{background:#232842;border-radius:3px}
+  .msg{animation:slidein .35s ease;font-size:13px;line-height:1.4}
+  @keyframes slidein{from{opacity:0;transform:translateY(8px)}}
+  .msg .top{display:flex;align-items:center;gap:7px;margin-bottom:2px}
+  .msg .who{font-weight:700;font-size:12.5px}
+  .msg .ch{font-size:10px;color:var(--faint);background:rgba(255,255,255,.05);padding:1px 6px;border-radius:5px}
+  .msg .time{margin-left:auto;font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .msg .body{color:var(--dim)}
+  .msg.dm .ch{color:#ec8fff;background:rgba(236,143,255,.1)}
+  .msg.sys{border-left:2px solid var(--gold);padding-left:9px}
+  .msg.sys .body{color:var(--gold)}
+
+  /* ledger */
+  .ledger{flex:1;overflow-y:auto;padding:12px 14px;font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11.5px}
+  .ledger::-webkit-scrollbar{width:6px}.ledger::-webkit-scrollbar-thumb{background:#232842;border-radius:3px}
+  .lrow{display:flex;gap:9px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);animation:slidein .3s}
+  .lrow .seq{color:var(--faint);min-width:34px}
+  .lrow .ev{font-weight:700}
+  .lrow .de{color:var(--dim);flex:1}
+  .lrow.replaying{background:rgba(124,140,255,.12);border-radius:5px}
+  .ev-msg{color:#7c8cff}.ev-task{color:#5ef2a0}.ev-anycast{color:#f5b642}
+  .ev-death{color:#ff6b6b}.ev-resume{color:#5ef2ce}.ev-presence{color:#c98bff}.ev-dm{color:#ec8fff}
+  .rail-head{padding:11px 16px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
+    display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+  .rail-head b{color:var(--text)}
+
+  /* ---------- controls ---------- */
+  footer{display:flex;align-items:center;gap:12px;padding:13px 22px;border-top:1px solid var(--line);
+    background:linear-gradient(0deg,rgba(20,24,44,.95),rgba(8,10,20,.7));z-index:5}
+  .btn{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:11px 18px;
+    border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.5px;
+    display:inline-flex;align-items:center;gap:8px;transition:.15s}
+  .btn:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .btn.kill{background:linear-gradient(180deg,#ff5757,#c02626);border-color:#ff8080;color:#fff;
+    box-shadow:0 0 22px rgba(255,70,70,.4)}
+  .btn.kill:hover{box-shadow:0 0 32px rgba(255,70,70,.7)}
+  .btn.replay{background:linear-gradient(180deg,#5b7cff,#2f47c0);border-color:#8ba0ff;color:#fff}
+  .btn.primary{background:linear-gradient(180deg,#f5b642,#c98410);border-color:#ffd177;color:#1a1200}
+  .foot-note{margin-left:auto;font-size:11px;color:var(--faint);letter-spacing:.5px}
+  .foot-note b{color:var(--dim)}
+  .speed{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--faint);letter-spacing:1px}
+  .speed input{accent-color:var(--accent)}
+
+  /* toast */
+  #toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.8);z-index:50;
+    background:linear-gradient(135deg,rgba(20,26,50,.97),rgba(10,12,26,.97));
+    border:1px solid var(--gold);border-radius:18px;padding:26px 40px;text-align:center;
+    box-shadow:0 0 60px rgba(245,182,66,.45),0 20px 60px rgba(0,0,0,.6);opacity:0;pointer-events:none;
+    transition:opacity .35s, transform .35s;max-width:560px}
+  #toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #toast img{width:110px;height:110px;border-radius:14px;object-fit:cover;margin-bottom:14px;
+    box-shadow:0 0 30px rgba(94,242,206,.5)}
+  #toast .tt{font-size:26px;font-weight:800;letter-spacing:1px;background:linear-gradient(90deg,#5ef2ce,#7c8cff,#f5b642);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  #toast .ts{font-size:14px;color:var(--dim);margin-top:8px;line-height:1.5}
+
+  .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;
+    gap:16px;background:var(--bg);z-index:100;transition:opacity .6s}
+  .loading.hide{opacity:0;pointer-events:none}
+  .loading .spin{width:54px;height:54px;border:3px solid rgba(124,140,255,.2);border-top-color:var(--accent);
+    border-radius:50%;animation:spin 1s linear infinite}
+  .loading .lt{color:var(--dim);letter-spacing:2px;font-size:13px;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <img class="emblem" id="emblem" alt="Cotal" />
+      <div>
+        <h1>COTAL <span style="color:var(--gold)">COMMAND DECK</span></h1>
+        <div class="sub"><b>Slack for your agents</b> · live multi-agent mesh · replayable log</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="chip"><div class="n" id="stOnline">0</div><div class="l">Agents online</div></div>
+      <div class="chip"><div class="n" id="stMsgs">0</div><div class="l">Messages</div></div>
+      <div class="chip"><div class="n" id="stEvents">0</div><div class="l">Log events</div></div>
+      <div class="chip"><div class="n" id="stUp">00:00</div><div class="l">Uptime</div></div>
+      <div class="live"><span class="dot"></span> LIVE</div>
+    </div>
+  </header>
+
+  <main>
+    <section id="stage">
+      <div id="stageBg"></div>
+      <canvas id="mesh"></canvas>
+      <div id="stageVig"></div>
+      <div class="stage-title">
+        <div class="k">Agent Mesh · NATS / JetStream transport</div>
+        <div class="v">channels · DMs · presence · anycast · durable replay</div>
+      </div>
+      <!-- nodes injected here -->
+    </section>
+
+    <aside>
+      <div class="tabs">
+        <div class="tab on" data-tab="feed">Channels</div>
+        <div class="tab" data-tab="ledger">Replay Log</div>
+      </div>
+      <div class="rail-head" id="railHead">#build · #review · #ops · #incident</div>
+      <div class="feed" id="feed"></div>
+      <div class="ledger" id="ledger" style="display:none"></div>
+    </aside>
+  </main>
+
+  <footer>
+    <button class="btn primary" id="btnPlay">⏸ Pause</button>
+    <div class="speed">SPEED <input type="range" id="speed" min="0.5" max="3" step="0.5" value="1"><span id="spVal">1×</span></div>
+    <button class="btn" id="btnIncident">⚠ Trigger Incident</button>
+    <button class="btn kill" id="btnKill">💀 Kill Working Agent</button>
+    <button class="btn replay" id="btnReplay">⟲ Replay Durable Log</button>
+    <div class="foot-note">Cotal.ai · open protocol · Apache-2.0 · <b>github.com/Cotal-AI/Cotal</b></div>
+  </footer>
+</div>
+
+<div id="toast"><img id="toastImg" alt=""><div class="tt" id="toastT"></div><div class="ts" id="toastS"></div></div>
+
+<div class="loading" id="loading">
+  <div class="spin"></div>
+  <div class="lt">Booting Cotal mesh…</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
