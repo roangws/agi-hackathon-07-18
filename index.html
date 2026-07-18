@@ -35,6 +35,14 @@
     text-transform:uppercase;font-weight:700}
   .live .dot{width:10px;height:10px;border-radius:50%;background:#5ef2a0;box-shadow:0 0 12px #5ef2a0;
     animation:blink 1.4s infinite}
+  .chip.insforge .l{display:flex;align-items:center;justify-content:center;gap:5px}
+  .ifdot{width:7px;height:7px;border-radius:50%;background:#5a6288;display:inline-block}
+  .ifdot.ok{background:#5ef2a0;box-shadow:0 0 8px #5ef2a0}
+  .ifdot.err{background:#ff6b6b;box-shadow:0 0 8px #ff6b6b}
+  .lrow.persisted .seq::after{content:"⇡";color:#5ef2a0;margin-left:3px;font-size:9px}
+  .lrow.restored{background:rgba(94,242,160,.06)}
+  .restore-divider{text-align:center;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+    color:#5ef2a0;padding:8px 0;border-bottom:1px dashed rgba(94,242,160,.3);margin-bottom:6px}
   @keyframes blink{50%{opacity:.25}}
 
   /* ---------- main ---------- */
@@ -171,6 +179,8 @@
       <div class="chip"><div class="n" id="stMsgs">0</div><div class="l">Messages</div></div>
       <div class="chip"><div class="n" id="stEvents">0</div><div class="l">Log events</div></div>
       <div class="chip"><div class="n" id="stUp">00:00</div><div class="l">Uptime</div></div>
+      <div class="chip insforge" id="ifChip" title="Durable log persisted to InsForge Postgres">
+        <div class="n" id="stIf">–</div><div class="l"><span id="ifDot" class="ifdot"></span> InsForge DB</div></div>
       <div class="live"><span class="dot"></span> LIVE</div>
     </div>
   </header>
@@ -215,6 +225,7 @@
   <div class="lt">Booting Cotal mesh…</div>
 </div>
 
+<script src="insforge-config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -8,6 +8,48 @@ const IMG = "assets/img/";
 document.getElementById("emblem").src = IMG + "emblem-cotal.png";
 document.getElementById("stageBg").style.backgroundImage = `url(${IMG}bg-hero.png)`;
 
+/* ================= InsForge: durable log persistence =================
+   Every ledger event is written to a real InsForge Postgres table
+   (auto-generated REST API). On boot we replay prior events back from
+   the cloud — so the "durable replayable log" survives a full reload.  */
+const IF = (() => {
+  const cfg = window.INSFORGE;
+  const on = !!(cfg && cfg.host && cfg.key);
+  const url = on ? `${cfg.host}/api/database/records/${cfg.table||"mesh_events"}` : null;
+  const hdr = on ? {"Authorization":`Bearer ${cfg.key}`,"Content-Type":"application/json"} : {};
+  let queue=[], persisted=0, failed=false;
+  function badge(){
+    const dot=document.getElementById("ifDot"), n=document.getElementById("stIf");
+    if(!on){ n.textContent="off"; dot.className="ifdot"; return; }
+    n.textContent=persisted;
+    dot.className="ifdot "+(failed?"err":"ok");
+  }
+  async function flush(){
+    if(!on||!queue.length) return;
+    const batch=queue.splice(0,queue.length);
+    try{
+      const r=await fetch(url,{method:"POST",headers:hdr,body:JSON.stringify(batch)});
+      if(!r.ok) throw new Error(r.status);
+      persisted+=batch.length; failed=false;
+    }catch(e){ failed=true; /* drop batch; demo continues */ }
+    badge();
+  }
+  if(on) setInterval(flush, 1500);
+  return {
+    on,
+    persist(row){ if(on) queue.push({seq:row.seq,kind:row.cls,actor:row.ev,channel:"",detail:row.detail}); },
+    async loadHistory(){
+      if(!on) { badge(); return []; }
+      try{
+        const r=await fetch(`${url}?order=seq.asc&limit=300`,{headers:hdr});
+        if(!r.ok) throw new Error(r.status);
+        const rows=await r.json(); persisted=rows.length; badge(); return rows;
+      }catch(e){ failed=true; badge(); return []; }
+    },
+    count(){ return persisted; }
+  };
+})();
+
 /* ---------- agents ---------- */
 const AGENTS = [
   {id:"atlas",  name:"Atlas",  role:"Orchestrator", c:"#f5b642", center:true},
@@ -171,11 +213,12 @@ const LEDGER=[];
 function log(ev, detail, cls){
   const seq=++S.seq;
   LEDGER.push({seq,ev,detail,cls});
-  const row=document.createElement("div"); row.className="lrow";
+  const row=document.createElement("div"); row.className="lrow"+(IF.on?" persisted":"");
   row.innerHTML=`<span class="seq">#${String(seq).padStart(3,"0")}</span>
     <span class="ev ev-${cls}">${ev}</span><span class="de">${detail}</span>`;
   ledgerEl.appendChild(row); ledgerEl.scrollTop=ledgerEl.scrollHeight;
   S.events++; updateStats();
+  IF.persist({seq,ev,detail,cls});   // → InsForge Postgres (durable)
 }
 
 /* ---------- stats ---------- */
@@ -368,8 +411,28 @@ addEventListener("keydown",e=>{
 });
 
 /* ---------- boot ---------- */
-function boot(){
+async function boot(){
   layout(); draw();
+  // Restore the durable log from InsForge — proves the record survives a reload.
+  const hist = await IF.loadHistory();
+  if(hist.length){
+    S.seq = hist[hist.length-1].seq;      // continue numbering from the cloud
+    S.events = hist.length;
+    const div=document.createElement("div"); div.className="restore-divider";
+    div.textContent=`⇡ replayed ${hist.length} events from InsForge Postgres`;
+    ledgerEl.appendChild(div);
+    hist.slice(-12).forEach(r=>{
+      const row=document.createElement("div"); row.className="lrow restored persisted";
+      row.innerHTML=`<span class="seq">#${String(r.seq).padStart(3,"0")}</span>
+        <span class="ev ev-${r.kind}">${r.actor||r.kind}</span><span class="de">${r.detail}</span>`;
+      ledgerEl.appendChild(row);
+    });
+    const liveDiv=document.createElement("div"); liveDiv.className="restore-divider";
+    liveDiv.style.color="#7c8cff"; liveDiv.style.borderColor="rgba(124,140,255,.3)";
+    liveDiv.textContent="— live session —";
+    ledgerEl.appendChild(liveDiv);
+    ledgerEl.scrollTop=ledgerEl.scrollHeight; updateStats();
+  }
   log("presence","mesh online · 8 agents joined","presence");
   AGENTS.forEach((a,i)=> setTimeout(()=>log("presence",`${a.name} (${a.role}) JOINED`,"presence"), i*90));
   setTimeout(()=>document.getElementById("loading").classList.add("hide"), 700);

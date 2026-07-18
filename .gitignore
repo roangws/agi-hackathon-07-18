@@ -18,3 +18,19 @@ npm-debug.log*
 
 # Cotal mesh runtime state + credentials (NEVER commit)
 .cotal/
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf
+insforge-config.js
