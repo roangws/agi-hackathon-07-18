@@ -162,15 +162,89 @@
   .loading .spin{width:54px;height:54px;border:3px solid rgba(124,140,255,.2);border-top-color:var(--accent);
     border-radius:50%;animation:spin 1s linear infinite}
   .loading .lt{color:var(--dim);letter-spacing:2px;font-size:13px;text-transform:uppercase}
+
+  /* =========================================================
+     v2 — command-deck HUD theme: custom icons, brackets, mono
+     ========================================================= */
+  :root{ --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,monospace; --green:#5ef2a0; }
+  .ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;
+      stroke-linecap:round;stroke-linejoin:round}
+  .mi{width:13px;height:13px;flex:none;vertical-align:-2px;margin-right:5px;stroke:currentColor;fill:none;
+      stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .mi.g{color:var(--green)} .mi.r{color:#ff6b6b} .mi.y{color:var(--gold)} .mi.b{color:var(--accent)}
+
+  /* header wordmark */
+  .brand h1{font-family:var(--mono);font-weight:700;letter-spacing:3px}
+  .brand .tag{display:inline-block;margin-left:12px;font-family:var(--mono);font-size:9px;
+     letter-spacing:2px;color:var(--green);border:1px solid rgba(94,242,160,.35);
+     border-radius:4px;padding:2px 7px;vertical-align:4px;font-weight:600}
+  .brand .sub{font-family:var(--mono);font-size:10.5px}
+  .chip .n{font-family:var(--mono)} .live{font-family:var(--mono)}
+  .chip{position:relative;border-radius:9px}
+  .chip::before{content:"";position:absolute;top:0;left:12px;right:12px;height:2px;opacity:.45;
+     background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+  .chip.insforge::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+  .chip .l{font-family:var(--mono)}
+
+  /* HUD corner brackets + faint grid on the stage */
+  .hud{position:absolute;width:24px;height:24px;z-index:3;pointer-events:none;opacity:.55}
+  .hud.tl{top:12px;left:12px;border-top:2px solid var(--accent);border-left:2px solid var(--accent)}
+  .hud.tr{top:12px;right:12px;border-top:2px solid var(--accent);border-right:2px solid var(--accent)}
+  .hud.bl{bottom:12px;left:12px;border-bottom:2px solid var(--accent);border-left:2px solid var(--accent)}
+  .hud.br{bottom:12px;right:12px;border-bottom:2px solid var(--accent);border-right:2px solid var(--accent)}
+  .stage-grid{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.05;
+     background-image:linear-gradient(rgba(124,140,255,.8) 1px,transparent 1px),
+       linear-gradient(90deg,rgba(124,140,255,.8) 1px,transparent 1px);
+     background-size:46px 46px;
+     -webkit-mask-image:radial-gradient(circle at 50% 46%,#000 38%,transparent 80%);
+     mask-image:radial-gradient(circle at 50% 46%,#000 38%,transparent 80%)}
+  .stage-title .k{font-family:var(--mono)}
+  .stage-title .v{font-family:var(--mono);font-size:12px}
+
+  /* buttons v2 — mono uppercase, icon-led, refined states */
+  footer .btn{border-radius:8px;font-family:var(--mono);font-size:11px;font-weight:600;
+     letter-spacing:1.5px;text-transform:uppercase;padding:11px 15px;background:rgba(255,255,255,.03)}
+  footer .btn:hover{transform:translateY(-1px)}
+  .btn.primary{background:rgba(245,182,66,.13);border-color:rgba(245,182,66,.5);color:var(--gold)}
+  .btn.primary:hover{background:linear-gradient(180deg,#f5b642,#c98410);border-color:#ffd177;color:#1a1200}
+  .btn.kill{background:transparent;border-color:rgba(255,107,107,.55);color:#ff8b8b;box-shadow:none}
+  .btn.kill:hover{background:linear-gradient(180deg,#ff5757,#c02626);border-color:#ff8080;color:#fff;
+     box-shadow:0 0 26px rgba(255,70,70,.55)}
+  .btn.replay{background:rgba(124,140,255,.12);border-color:rgba(139,160,255,.5);color:#c3ccff}
+  .btn.replay:hover{background:linear-gradient(180deg,#5b7cff,#2f47c0);border-color:#8ba0ff;color:#fff}
+  .speed{font-family:var(--mono);text-transform:uppercase;font-size:10px}
+
+  /* presence marker → squared tech indicator */
+  .node .pstat{font-family:var(--mono);text-transform:uppercase;font-size:9px;letter-spacing:1px}
+  .node .pstat .pd{border-radius:2px}
+  .node.working .pstat .pd{animation:pdpulse 1s infinite}
+  @keyframes pdpulse{50%{opacity:.35}}
+  .node .task{font-family:var(--mono);font-size:9.5px}
+  .tab{font-family:var(--mono)} .rail-head{font-family:var(--mono)}
+  #toast .ts{font-family:var(--mono);font-size:13px}
+  .loading .lt{font-family:var(--mono)}
 </style>
 </head>
 <body>
+<!-- custom line-art icon sprite (no emojis anywhere) -->
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+  <symbol id="i-pause" viewBox="0 0 24 24"><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5 L19 12 L7 19 Z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 L21 19 H3 Z"/><line x1="12" y1="9.5" x2="12" y2="13.5"/><line x1="12" y1="16.4" x2="12" y2="16.5"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><line x1="12" y1="3.5" x2="12" y2="11.5"/><path d="M7.6 6.6 A7 7 0 1 0 16.4 6.6"/></symbol>
+  <symbol id="i-replay" viewBox="0 0 24 24"><path d="M20 12 a8 8 0 1 1 -2.3 -5.6"/><polyline points="20 3.5 20 8.5 15 8.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="4 12.5 10 18 20 6"/></symbol>
+  <symbol id="i-flatline" viewBox="0 0 24 24"><line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><polygon points="13 3 5 13.5 11 13.5 9 21 19 10 12.5 10 13 3"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><line x1="3" y1="12" x2="18" y2="12"/><polyline points="13 6.5 18.5 12 13 17.5"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6 v12 c0 1.4 3.1 2.6 7 2.6 s7 -1.2 7 -2.6 V6"/><path d="M5 12 c0 1.4 3.1 2.6 7 2.6 s7 -1.2 7 -2.6"/></symbol>
+</svg>
 <div id="app">
   <header>
     <div class="brand">
       <img class="emblem" id="emblem" alt="Cotal" />
       <div>
-        <h1>COTAL <span style="color:var(--gold)">COMMAND DECK</span></h1>
+        <h1>COTAL <span style="color:var(--gold)">COMMAND DECK</span><span class="tag">SESSION LIVE</span></h1>
         <div class="sub"><b>Slack for your agents</b> · live multi-agent mesh · replayable log</div>
       </div>
     </div>
@@ -180,7 +254,7 @@
       <div class="chip"><div class="n" id="stEvents">0</div><div class="l">Log events</div></div>
       <div class="chip"><div class="n" id="stUp">00:00</div><div class="l">Uptime</div></div>
       <div class="chip insforge" id="ifChip" title="Durable log persisted to InsForge Postgres">
-        <div class="n" id="stIf">–</div><div class="l"><span id="ifDot" class="ifdot"></span> InsForge DB</div></div>
+        <div class="n" id="stIf">–</div><div class="l"><span id="ifDot" class="ifdot"></span> InsForge</div></div>
       <div class="live"><span class="dot"></span> LIVE</div>
     </div>
   </header>
@@ -190,6 +264,8 @@
       <div id="stageBg"></div>
       <canvas id="mesh"></canvas>
       <div id="stageVig"></div>
+      <div class="stage-grid"></div>
+      <div class="hud tl"></div><div class="hud tr"></div><div class="hud bl"></div><div class="hud br"></div>
       <div class="stage-title">
         <div class="k">Agent Mesh · NATS / JetStream transport</div>
         <div class="v">channels · DMs · presence · anycast · durable replay</div>
@@ -209,11 +285,11 @@
   </main>
 
   <footer>
-    <button class="btn primary" id="btnPlay">⏸ Pause</button>
+    <button class="btn primary" id="btnPlay"><svg class="ic"><use href="#i-pause"/></svg><span class="lbl">Pause</span></button>
     <div class="speed">SPEED <input type="range" id="speed" min="0.5" max="3" step="0.5" value="1"><span id="spVal">1×</span></div>
-    <button class="btn" id="btnIncident">⚠ Trigger Incident</button>
-    <button class="btn kill" id="btnKill">💀 Kill Working Agent</button>
-    <button class="btn replay" id="btnReplay">⟲ Replay Durable Log</button>
+    <button class="btn" id="btnIncident"><svg class="ic"><use href="#i-alert"/></svg><span class="lbl">Trigger Incident</span></button>
+    <button class="btn kill" id="btnKill"><svg class="ic"><use href="#i-power"/></svg><span class="lbl">Kill Working Agent</span></button>
+    <button class="btn replay" id="btnReplay"><svg class="ic"><use href="#i-replay"/></svg><span class="lbl">Replay Durable Log</span></button>
     <div class="foot-note">Cotal.ai · open protocol · Apache-2.0 · <b>github.com/Cotal-AI/Cotal</b></div>
   </footer>
 </div>

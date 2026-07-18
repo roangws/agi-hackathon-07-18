@@ -190,6 +190,9 @@ function setPresence(id,st,task){
   updateStats();
 }
 
+/* ---------- inline icon helper (no emojis) ---------- */
+function ic(name,cls){ return `<svg class="mi ${cls||''}"><use href="#i-${name}"/></svg>`; }
+
 /* ---------- channel feed ---------- */
 const feed=document.getElementById("feed");
 function clock(){ const s=Math.floor((Date.now()-S.t0)/1000);
@@ -240,7 +243,7 @@ const CHATTER=[
   ["sven","#build","reminder: everything here replays from JetStream","msg"],
   ["vega","#ops","presence heartbeat nominal on all nodes","msg"],
   ["david","#review","addressed feedback, re-requesting review","msg"],
-  ["nova","#review","approved ✅ merging","msg"],
+  ["nova","#review",`approved ${ic("check","g")}merging`,"msg"],
   ["echo","#build","embedding the new docs into shared memory","msg"],
 ];
 let chatIdx=0;
@@ -273,7 +276,7 @@ async function killAndResume(){
   if(S.busy) return; S.busy=true;
   // ensure a clear "victim" is actively working on a real task
   const victim = byId.david;
-  setPresence("david","working","building: payments-service ▓▓▓░░ 62%");
+  setPresence("david","working","building payments-service · 62%");
   say("david","#build","claimed task <b>build:payments-service</b> — working…","msg");
   log("task", "david CLAIMED build:payments-service", "task");
   await wait(1400);
@@ -282,7 +285,7 @@ async function killAndResume(){
   const el=nodes.david; el.classList.add("dying");
   burst(byId.david.x, byId.david.y);
   flashScene("scene-death.png");
-  say("vega","#ops","⚠ node <b>david</b> lost heartbeat — process terminated","sys");
+  say("vega","#ops",`${ic("flatline","r")}node <b>david</b> lost heartbeat — process terminated`,"sys");
   log("presence", "david → OFFLINE (heartbeat lost)", "presence");
   log("death", "david TERMINATED mid-task (task orphaned)", "death");
   await wait(500);
@@ -306,7 +309,7 @@ async function killAndResume(){
   say("nova","#build","claimed orphaned task — <b>replaying from JetStream bookmark</b> #"+(S.seq-2)+" … resuming at 62%","msg");
   log("resume", "nova CLAIMED + RESUMED from durable log (no work lost)", "resume");
   await wait(1400);
-  say("nova","#build","payments-service ▓▓▓▓▓ 100% ✅ done — zero work lost","msg");
+  say("nova","#build",`payments-service · 100% ${ic("check","g")}done — zero work lost`,"msg");
   log("task", "nova COMPLETED build:payments-service", "task");
 
   showToast("scene-resume.png","AGENT SURVIVED DEATH",
@@ -321,7 +324,7 @@ async function killAndResume(){
 async function incident(){
   if(S.busy) return; S.busy=true;
   document.getElementById("stageBg").style.transition="background-image .4s";
-  say("vega","#incident","🚨 <b>INCIDENT</b>: error rate spike in payments — opening incident room","sys");
+  say("vega","#incident",`${ic("bolt","r")}<b>INCIDENT</b>: error rate spike in payments — opening incident room`,"sys");
   log("presence","vega OPENED #incident","presence");
   flashScene("scene-incident.png");
   RING.forEach((id,i)=> setTimeout(()=>{ if(S.presence[id]!=="offline"){ setPresence(id,"working","triaging…"); pulse(id,"atlas",byId[id].c);} }, i*160));
@@ -336,7 +339,7 @@ async function incident(){
   log("anycast","atlas ANYCAST hotfix → role:engineer","anycast");
   pulse("atlas","david","#f97316",true);
   await wait(1000);
-  say("david","#incident","hotfix shipped ✅ error rate back to baseline","msg");
+  say("david","#incident",`hotfix shipped ${ic("check","g")}error rate back to baseline`,"msg");
   log("resume","incident RESOLVED · full timeline in durable log","resume");
   showToast("scene-incident.png","INCIDENT RESOLVED LIVE",
     "The whole team swarmed <b>#incident</b>, coordinated over the mesh, and the entire triage is preserved as a <b>replayable record</b>.");
@@ -393,8 +396,11 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.dataset.t
 
 /* ---------- controls ---------- */
 const wait=ms=>new Promise(r=>setTimeout(r,ms/S.speed));
-document.getElementById("btnPlay").onclick=e=>{
-  S.playing=!S.playing; e.target.textContent=S.playing?"⏸ Pause":"▶ Play";
+document.getElementById("btnPlay").onclick=()=>{
+  S.playing=!S.playing;
+  const b=document.getElementById("btnPlay");
+  b.querySelector("use").setAttribute("href", S.playing?"#i-pause":"#i-play");
+  b.querySelector(".lbl").textContent = S.playing?"Pause":"Play";
 };
 document.getElementById("btnKill").onclick=()=>{ switchTab("feed"); killAndResume(); };
 document.getElementById("btnIncident").onclick=()=>{ switchTab("feed"); incident(); };
