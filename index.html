@@ -184,6 +184,8 @@
   .chip::before{content:"";position:absolute;top:0;left:12px;right:12px;height:2px;opacity:.45;
      background:linear-gradient(90deg,transparent,var(--accent),transparent)}
   .chip.insforge::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+  .chip.runtype::before{background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+  .ifdot.warn{background:var(--gold);box-shadow:0 0 8px var(--gold)}
   .chip .l{font-family:var(--mono)}
 
   /* HUD corner brackets + faint grid on the stage */
@@ -255,6 +257,8 @@
       <div class="chip"><div class="n" id="stUp">00:00</div><div class="l">Uptime</div></div>
       <div class="chip insforge" id="ifChip" title="Durable log persisted to InsForge Postgres">
         <div class="n" id="stIf">–</div><div class="l"><span id="ifDot" class="ifdot"></span> InsForge</div></div>
+      <div class="chip insforge runtype" id="rtChip" title="Live incident triage by a RunType agent">
+        <div class="n" id="stRt">–</div><div class="l"><span id="rtDot" class="ifdot"></span> RunType</div></div>
       <div class="live"><span class="dot"></span> LIVE</div>
     </div>
   </header>

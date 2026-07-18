@@ -193,6 +193,43 @@ function setPresence(id,st,task){
 /* ---------- inline icon helper (no emojis) ---------- */
 function ic(name,cls){ return `<svg class="mi ${cls||''}"><use href="#i-${name}"/></svg>`; }
 
+/* ================= RunType: live agent capability =================
+   The #incident beat calls a deployed RunType flow (hachathon_agent) via a
+   same-origin proxy (server.js) — real API call, build once callable anywhere.
+   The proxy keeps the RunType key server-side and adds the CORS the browser needs. */
+const RT = (() => {
+  let on=false, calls=0, failed=false;
+  function badge(state){
+    const dot=document.getElementById("rtDot"), n=document.getElementById("stRt");
+    if(!dot) return;
+    if(!on){ n.textContent="off"; dot.className="ifdot"; return; }
+    n.textContent = state==="live" ? "•••" : calls;
+    dot.className = "ifdot "+(failed?"err":state==="live"?"warn":"ok");
+  }
+  return {
+    get on(){ return on; },
+    async init(){
+      try{ const r=await fetch("/rt/health"); const j=await r.json(); on=!!j.enabled; }
+      catch{ on=false; }        // running under a plain static server → RunType off
+      badge();
+    },
+    async ask(message){
+      if(!on) return null;
+      badge("live");
+      try{
+        const r=await fetch("/rt/dispatch",{
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({message})
+        });
+        if(!r.ok) throw new Error(r.status);
+        let out=await r.json();                    // RunType returns a JSON string
+        if(typeof out!=="string") out=out.output||out.summary||JSON.stringify(out);
+        calls++; failed=false; badge(); return String(out).trim();
+      }catch(e){ failed=true; badge(); return null; }
+    }
+  };
+})();
+
 /* ---------- channel feed ---------- */
 const feed=document.getElementById("feed");
 function clock(){ const s=Math.floor((Date.now()-S.t0)/1000);
@@ -331,9 +368,23 @@ async function incident(){
   await wait(1200);
   say("echo","#incident","correlating logs — spike started 40s ago on payments-service","msg");
   log("message","echo → #incident","msg");
-  await wait(900);
-  say("nova","#incident","reproduced. root cause: retry storm. proposing fix","msg");
-  log("message","nova → #incident","msg");
+  await wait(700);
+
+  // Live RunType agent triage — real API call to a deployed flow.
+  const incidentLog="payments-service error rate spiked 400% in 40s, retry storm, p99 latency 4s";
+  const prompt=`You are an incident triage bot. Reply with EXACTLY one line in this format and nothing else: <one concise sentence> — severity: <low|medium|high>. Incident: ${incidentLog}`;
+  let summary=null;
+  if(RT.on){
+    say("sven","#incident",`${ic("route","y")}dispatching to <b>RunType agent</b> for triage…`,"sys");
+    summary=await RT.ask(prompt);
+  }
+  if(summary){
+    say("sven","#incident",`${ic("bolt","y")}<b>RunType agent</b>: ${summary}`,"sys");
+    log("message","RunType triage → #incident","msg");
+  } else {
+    say("nova","#incident","reproduced. root cause: retry storm. proposing fix","msg");
+    log("message","nova → #incident","msg");
+  }
   await wait(900);
   say("atlas","#incident","assigning fix via anycast → engineer","sys");
   log("anycast","atlas ANYCAST hotfix → role:engineer","anycast");
@@ -341,8 +392,10 @@ async function incident(){
   await wait(1000);
   say("david","#incident",`hotfix shipped ${ic("check","g")}error rate back to baseline`,"msg");
   log("resume","incident RESOLVED · full timeline in durable log","resume");
-  showToast("scene-incident.png","INCIDENT RESOLVED LIVE",
-    "The whole team swarmed <b>#incident</b>, coordinated over the mesh, and the entire triage is preserved as a <b>replayable record</b>.");
+  showToast("scene-incident.png","INCIDENT TRIAGED LIVE BY RUNTYPE",
+    summary
+      ? `A deployed <b>RunType</b> agent triaged it in real time:<br><b>"${summary}"</b><br>The team fixed it over the mesh — full timeline in the <b>replayable record</b>.`
+      : "The whole team swarmed <b>#incident</b>, coordinated over the mesh, and the entire triage is preserved as a <b>replayable record</b>.");
   await wait(2200);
   RING.forEach(id=>{ if(S.presence[id]!=="offline") setPresence(id,"idle",""); });
   S.busy=false;
@@ -419,6 +472,7 @@ addEventListener("keydown",e=>{
 /* ---------- boot ---------- */
 async function boot(){
   layout(); draw();
+  RT.init();
   // Restore the durable log from InsForge — proves the record survives a reload.
   const hist = await IF.loadHistory();
   if(hist.length){

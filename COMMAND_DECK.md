@@ -15,9 +15,14 @@ the "walk past the table and go *wow*" centerpiece for the Cotal.ai track at the
 ## Run it (zero dependencies)
 
 ```bash
-python3 -m http.server 8099
+node server.js
 # open http://localhost:8099/  → press F11 / ⌃⌘F for full screen
 ```
+
+`server.js` serves the deck and proxies the RunType call server-side (keeps the API
+key off the client and adds the CORS the browser needs). It reads `RUNTYPE_*` and the
+InsForge/GMI keys from `.env` (gitignored). A plain `python3 -m http.server 8099` still
+works too — the RunType badge just shows `off` and the incident beat uses a scripted line.
 
 ## Stage controls
 
