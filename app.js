@@ -5,8 +5,8 @@
    Pure vanilla JS. Self-driving simulation with live controls.        */
 
 const IMG = "assets/img/";
-document.getElementById("emblem").src = IMG + "emblem-cotal.png";
-document.getElementById("stageBg").style.backgroundImage = `url(${IMG}bg-hero.png)`;
+const ORB = "assets/orbs/";
+document.getElementById("emblem").src = ORB + "orb-atlas.png";
 
 /* ================= InsForge: durable log persistence =================
    Every ledger event is written to a real InsForge Postgres table
@@ -85,9 +85,10 @@ AGENTS.forEach(a=>{
   el.style.setProperty("--c", a.c);
   el.dataset.id = a.id;
   el.innerHTML = `
-    <div class="avatar-wrap">
-      <div class="ring"></div>
-      <img src="${IMG}agent-${a.id}.png" onerror="this.src='${IMG}agent-generic.png'"/>
+    <div class="orb-wrap">
+      <video class="orb" autoplay loop muted playsinline poster="${ORB}orb-${a.id}.png">
+        <source src="${ORB}orb-${a.id}.mp4" type="video/mp4">
+      </video>
     </div>
     <div class="name">${a.name}</div>
     <div class="role">${a.role}</div>
@@ -142,14 +143,14 @@ function draw(){
   S.particles.forEach(p=>{
     p.x+=p.vx*S.speed; p.y+=p.vy*S.speed;
     if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fillStyle=`rgba(140,160,255,${p.a})`; ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fillStyle=`rgba(255,255,255,${p.a*0.5})`; ctx.fill();
   });
   // edges
   EDGES.forEach(([a,b])=>{
     const A=byId[a],B=byId[b];
     const off = S.presence[a]==="offline"||S.presence[b]==="offline";
     ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y);
-    ctx.strokeStyle = off ? "rgba(90,70,90,.10)" : "rgba(120,140,220,.16)";
+    ctx.strokeStyle = off ? "rgba(255,90,90,.06)" : "rgba(255,255,255,.07)";
     ctx.lineWidth = 1; ctx.stroke();
   });
   // travelling pulses (messages)
@@ -212,6 +213,7 @@ const RT = (() => {
       try{ const r=await fetch("/rt/health"); const j=await r.json(); on=!!j.enabled; }
       catch{ on=false; }        // running under a plain static server → RunType off
       badge();
+      document.getElementById("pwRt")?.classList.toggle("on", on);
     },
     async ask(message){
       if(!on) return null;
@@ -417,13 +419,15 @@ async function replayLog(){
   S.busy=false;
 }
 
-/* ---------- scene flash overlay ---------- */
+/* ---------- minimal color-tint flash (no busy imagery) ---------- */
+const FLASH={"scene-death.png":"255,107,107","scene-resume.png":"201,246,88",
+  "scene-anycast.png":"242,201,76","scene-incident.png":"255,120,80","scene-ledger.png":"170,150,255"};
 function flashScene(name){
-  const bg=document.getElementById("stageBg");
-  bg.style.backgroundImage=`url(${IMG}${name})`;
-  bg.style.opacity=".6";
-  clearTimeout(bg._t);
-  bg._t=setTimeout(()=>{ bg.style.backgroundImage=`url(${IMG}bg-hero.png)`; bg.style.opacity=".35"; }, 1600);
+  const f=document.getElementById("stageFlash");
+  const c=FLASH[name]||"201,246,88";
+  f.style.background=`radial-gradient(60% 55% at 50% 45%, rgba(${c},.22), transparent 70%)`;
+  f.style.opacity="1"; clearTimeout(f._t);
+  f._t=setTimeout(()=>{ f.style.opacity="0"; }, 1300);
 }
 
 /* ---------- toast ---------- */
@@ -473,6 +477,8 @@ addEventListener("keydown",e=>{
 async function boot(){
   layout(); draw();
   RT.init();
+  document.getElementById("pwCotal")?.classList.add("on");
+  if(IF.on) document.getElementById("pwIf")?.classList.add("on");
   // Restore the durable log from InsForge — proves the record survives a reload.
   const hist = await IF.loadHistory();
   if(hist.length){
