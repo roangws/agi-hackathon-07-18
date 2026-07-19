@@ -44,7 +44,8 @@ const FLEET = {};                 // agentId -> { proc, alive, bootRetried }
 let ROSTER = [];
 if (MESH_ON) {
   ROSTER = require("./engine/personas").ROSTER;
-  ROSTER.forEach(a => spawnWorker(a.id));
+  // stagger boot: 8 agents claiming + calling the LLM at once chokes the backend
+  ROSTER.forEach((a, i) => setTimeout(() => spawnWorker(a.id), i * 1500));
 }
 
 function spawnWorker(id) {

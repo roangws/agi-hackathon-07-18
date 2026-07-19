@@ -10,8 +10,11 @@ const ME = process.argv[2];
 const AGENT = byId[ME];
 if (!AGENT) { console.error(`unknown agent '${ME}'`); process.exit(1); }
 
-const HEARTBEAT_MS = 2_000;
-const STALE_MS = 6_000;
+const HEARTBEAT_MS = 4_000;
+/* Wide margin over the heartbeat: the shared backend can choke for 10s+
+   under burst load, and a false steal costs a duplicated boundary step.
+   ~7 consecutive missed beats before an agent is presumed dead. */
+const STALE_MS = 30_000;
 const STEP_PACE_MS = Number(process.env.STEP_PACE_MS || 3_500);
 const IDLE_CHATTER_EVERY = 5;          // idle loops between ambient lines
 
@@ -25,18 +28,20 @@ let currentTask = null;
 async function setState(status, task_label = "") {
   await db.patch("agent_state", `aid=eq.${ME}`, { status, task_label, heartbeat_at: now() });
 }
-setInterval(async () => {
-  try {
-    await db.patch("agent_state", `aid=eq.${ME}`, { heartbeat_at: now() });
-    if (currentTask) {
-      // guard on ownership: if we were presumed dead and rescued, stop pumping
-      const r = await db.patch("care_tasks", `tid=eq.${currentTask.tid}&owner_agent=eq.${ME}`, { heartbeat_at: now() });
-      if (!Array.isArray(r) || !r.length) {
-        console.log(`[${ME}] lost ownership of ${currentTask.tid} — abandoning`);
-        currentTask = null;
-      }
+async function beat() {
+  await db.patch("agent_state", `aid=eq.${ME}`, { heartbeat_at: now() });
+  if (currentTask) {
+    // guard on ownership: if we were presumed dead and rescued, stop pumping
+    const r = await db.patch("care_tasks", `tid=eq.${currentTask.tid}&owner_agent=eq.${ME}`, { heartbeat_at: now() });
+    if (!Array.isArray(r) || !r.length) {
+      console.log(`[${ME}] lost ownership of ${currentTask.tid} — abandoning`);
+      currentTask = null;
     }
-  } catch {}
+  }
+}
+setInterval(async () => {
+  try { await beat(); }
+  catch { try { await beat(); } catch {} }   // one retry — a dropped socket must not eat a beat
 }, HEARTBEAT_MS).unref?.();
 
 /* ---------- LLM step execution via the GMI edge function ---------- */
@@ -54,14 +59,14 @@ async function llm(system, message) {
 }
 
 /* Tool: pull live context from Postgres so each step reasons over the actual
-   record — the patient row plus any sibling tasks in flight for them. */
+   record — the patient row (cached per task) plus sibling tasks in flight. */
+const patientCache = {};
 async function fetchContext(task) {
   try {
-    const [pat, siblings] = await Promise.all([
-      db.q("patients", `pid=eq.${task.patient_id}&limit=1`),
-      db.q("care_tasks", `patient_id=eq.${task.patient_id}&tid=neq.${task.tid}&limit=6`),
-    ]);
-    const p = pat[0];
+    if (!patientCache[task.patient_id])
+      patientCache[task.patient_id] = (await db.q("patients", `pid=eq.${task.patient_id}&limit=1`))[0];
+    const siblings = await db.q("care_tasks", `patient_id=eq.${task.patient_id}&tid=neq.${task.tid}&limit=6`);
+    const p = patientCache[task.patient_id];
     const sib = siblings.map(s =>
       `${s.title} [${s.status}${s.owner_agent ? " · " + s.owner_agent : ""} · step ${s.bookmark}/${(s.steps || []).length}]`).join("; ");
     return `LIVE RECORD — patient: ${p.name}, ${p.mrn}, ${p.age}${p.sex}, acuity ${p.acuity}, ${(p.conditions || []).join("; ")}. ` +
@@ -175,6 +180,6 @@ async function idleChatter() {
     } catch (e) {
       console.error(`[${ME}]`, e.message);
     }
-    await sleep(3_000 + Math.random() * 3_000);
+    await sleep(6_000 + Math.random() * 4_000);
   }
 })();

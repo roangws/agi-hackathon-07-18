@@ -51,24 +51,22 @@ async function logEvent({ agent, channel = "", kind, body = "", task_id = null }
   return Array.isArray(rows) ? rows[0] : null;
 }
 
-/* A task is claimable when it has no dependency, or its parent completed. */
-async function claimable(t) {
-  if (!t.depends_on) return true;
-  const parent = await q("care_tasks", `tid=eq.${t.depends_on}&limit=1`);
-  return parent.length && parent[0].status === "completed";
-}
-
 /* Claim a fresh task: pick a `requested` row, then atomically take it.
    The WHERE owner_agent=is.null guard makes the race safe.
    preferredKind: specialists claim their own lane first, then anything —
-   but anycast rescue (claimStale) stays role-agnostic. */
+   but anycast rescue (claimStale) stays role-agnostic.
+   One query for the whole board (≤~20 rows); dependency gate evaluated
+   in memory to keep request rate off the shared backend. */
 async function claimNew(agentId, preferredKind) {
-  const open = await q("care_tasks", "status=eq.requested&owner_agent=is.null&limit=20");
+  const all = await q("care_tasks", "limit=100");
+  const done = new Set(all.filter(t => t.status === "completed").map(t => t.tid));
+  const open = all.filter(t =>
+    t.status === "requested" && !t.owner_agent &&
+    (!t.depends_on || done.has(t.depends_on)));          // dependency gate
   const ordered = preferredKind
     ? [...open.filter(t => t.kind === preferredKind), ...open.filter(t => t.kind !== preferredKind)]
     : open;
   for (const t of ordered) {
-    if (!(await claimable(t))) continue;      // dependency gate
     const won = await patch(
       "care_tasks",
       `tid=eq.${t.tid}&owner_agent=is.null`,
