@@ -1,52 +1,68 @@
-# Cotal Command Deck
+# Cotal Care Deck
 
-**Cotal: Slack for agents, with a memory that outlives the agent.**
+**Slack for clinical agents, with a memory that outlives the shift.**
 
 Built for the AGI Summit 2026 Hackathon, Cotal track.
 
 **Live:** https://cotal-deck.insforge.site
 
-> Kill a working agent live. Another agent claims its task and resumes from the
-> durable log. **The agent dies. The work continues.**
+> Kill a working agent — a real `SIGKILL` on a real OS process — mid-patient-handoff.
+> Another agent claims the task through anycast, replays the durable log, and resumes
+> from the exact bookmark. **The agent dies. The handoff never drops. The audit trail
+> shows everything.**
 
 ---
 
-## What this is
+## The problem
 
-Cotal Command Deck is a live, projector-ready dashboard for a Cotal-style multi-agent mesh.
-Eight agents work side by side over channels, direct messages, and presence, all riding a
-durable, replayable log. The centerpiece moment: end a working agent mid-task, watch its work
-get picked up by another agent through anycast routing, and see it resume from the exact
-bookmark in the log instead of starting over.
+- The Joint Commission has estimated that **80% of serious medical errors involve
+  miscommunication during handoffs** — shift changes, unit transfers, discharges.
+- Handoffs fail for a simple reason: the state of the work lives in someone's head
+  (or in a process that just crashed), not in a durable, ordered, replayable record.
+- As hospitals adopt AI agents for operations, the same failure mode returns worse:
+  an agent process dies mid-task and its work evaporates.
 
-Beyond the scripted stage moments, you can also **talk to any agent live**. The chat composer
-sends your message to a real GMI Cloud model, which answers in that agent's voice and lands the
-reply in the same feed and durable log as every other message.
+## The insight
+
+**Continuity of care is continuity of compute.** If every step of every handoff rides
+a durable log, then no crash, restart, or shift change can drop a patient — and the
+same log that makes the mesh crash-proof *is* the compliance-grade audit trail.
 
 ## What we built
 
-- A mesh graph of 8 agents with live presence (idle, working, offline), channel posts, DMs, and
-  anycast task routing
-- A durable event log backed by InsForge Postgres, so the full history replays correctly even
-  after a reload
-- The kill-and-resume beat: end a working agent's process, watch anycast reassign its task, and
-  see the new agent resume from the last bookmark
-- A live incident-triage beat powered by a deployed RunType agent
-- A live chat composer where any agent answers in character through a GMI Cloud model
-- 20 avatar and background visuals generated with the GMI Cloud image API, plus per-agent orb
-  videos
+A hospital operations command center run by **8 real agent processes** (triage,
+pharmacy med-rec, discharge, bed flow, labs, imaging, transport, charge-nurse
+orchestrator) over a Cotal-style mesh:
 
-## How it works
+- **Real work**: FHIR-shaped synthetic tasks (discharge summaries, med
+  reconciliation, triage, bed assignment, lab follow-up); every step is a real LLM
+  call (Claude via GMI Cloud) whose artifact is durably logged to InsForge Postgres
+  **before** the task's bookmark advances.
+- **Real death**: the Kill button (or your own `kill -9`) SIGKILLs a worker process.
+  Its heartbeat lapses; the task is orphaned.
+- **Real anycast**: idle agents race an atomic conditional `UPDATE`; exactly one wins
+  the orphaned task (we ship the race test).
+- **Real resume**: the winner replays the task's durable log and resumes at
+  bookmark + 1. Machine-verified invariant: *every step logged exactly once* —
+  no step repeated, none lost.
+- **Real replay**: reload the page and the deck rebuilds the entire history from
+  Postgres — the audit trail in action.
+- **Live chat**: talk to any agent; a real GMI Cloud model answers in that agent's
+  clinical-ops persona.
+- **ED surge beat**: a deployed RunType agent triages a live surge scenario.
 
-| Piece | Role |
-| --- | --- |
-| Front end | Vanilla HTML and JS, no build step, rendering the mesh graph and live UI |
-| Durable log | An InsForge Postgres table, read and written through the InsForge REST API |
-| Incident triage | An InsForge edge function proxies a deployed RunType flow, keeping the RunType key server-side |
-| Live chat | An InsForge edge function proxies a GMI Cloud model, keeping the GMI key server-side |
-| Hosting | The app, the durable log, and both edge functions all run from one InsForge Sites deployment |
+Synthetic data only — no real PHI. Agents are **operations assist**, not clinical
+decision-making.
 
-For the full technical write-up, including file-by-file details, see `COMMAND_DECK.md`.
+## Why it matters (business)
+
+- **Wedge**: hospital ops automation (handoffs, discharge coordination, bed flow) —
+  measurable in length-of-stay and left-without-being-seen metrics.
+- **Moat**: the durable log doubles as the **HIPAA-friendly audit artifact** every
+  compliance office asks for the moment you put agents near patient workflows.
+  Resilience and auditability come from the same primitive.
+- **Model**: per-facility SaaS for the mesh + compliance reporting add-on; the same
+  engine generalizes to any regulated ops domain (pharmacy chains, clinical trials).
 
 ## The real Cotal mesh (proof it's genuinely running)
 
@@ -88,31 +104,46 @@ effect in the vendor's console:
 
 ## Try it
 
-Open the live deck above, or run it locally:
-
 ```bash
-node server.js
-# open http://localhost:8099/
+node engine/seed.js          # reseed synthetic patients + tasks
+node server.js --mesh        # deck + 8 real agent worker processes
+# open http://localhost:8099/          → live mode (real agents)
+# open http://localhost:8099/?mode=demo → projector-safe scripted mode
 ```
 
-`server.js` serves the app and proxies RunType server-side. Keys for RunType, InsForge, and GMI
-live in a gitignored `.env`. A plain static server also works; the RunType and GMI features fall
-back to a scripted line when their keys are not configured.
+Tests:
+
+```bash
+node engine/test-claim.js    # anycast atomicity: exactly one winner per race
+node engine/test-resume.js   # kill mid-task → rescue resumes at bookmark, zero repeats
+```
+
+The deployed site runs the scripted demo plus live census/chat; the full
+kill-a-real-process beat runs from the laptop fleet (edge functions can't host
+long-lived workers).
 
 ## Stage moments
 
 | Control | Moment |
 | --- | --- |
-| Kill Working Agent (`K`) | An agent dies, its task is anycast to another agent, and that agent resumes from the durable-log bookmark |
-| Trigger Incident (`I`) | The team swarms `#incident`, and a real RunType agent returns a live triage summary |
-| Replay Durable Log (`R`) | A late joiner replays the entire ordered history |
-| Chat composer | Talk to any agent and get a live reply from a GMI Cloud model |
+| Kill Working Agent (`K`) | real SIGKILL → heartbeat lapse → anycast rescue → resume from bookmark → **"HANDOFF NEVER DROPPED"** |
+| Trigger Incident (`I`) | ED surge; a real RunType agent returns live ops triage |
+| Replay / reload (`R`) | entire ordered history replays from the durable log |
+| Chat composer | any agent answers live via a GMI Cloud model |
+| Census tab | synthetic patient board with per-handoff progress, owner, acuity |
 
-## Team and stack
+## Stack
 
-Cotal (the mesh concept), InsForge (Postgres log, edge functions, hosting), RunType (the incident
-triage agent), and GMI Cloud (image generation and the chat model).
+| Piece | Role |
+| --- | --- |
+| Cotal | the mesh concept: channels, presence, anycast, durable log |
+| InsForge | Postgres durable log + tables, edge functions, Sites hosting |
+| GMI Cloud | LLM inference for every agent step + chat (Claude Haiku), image gen for visuals |
+| RunType | deployed surge-triage agent |
+| Engine | zero-dependency Node: 8 worker processes, heartbeats, atomic claims |
+
+For the full technical write-up see `CARE_DECK.md`.
 
 ---
 
-*Built for the AGI Hackathon, July 18 to 19, 2026.*
+*Built at the AGI Hackathon, July 18–19, 2026. Synthetic data only; not a medical device.*
