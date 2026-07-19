@@ -1,22 +1,17 @@
-# Demo video — shot list + voiceover (target ≤ 2:30)
+# Demo video — shot list + voiceover (target ≤ 1:20)
 
 Setup before recording: `curl -X POST localhost:8099/mesh/reset`, browser at
-`http://localhost:8099/` full-screen, terminal window ready on second half of
-screen for the kill-9 beat. QuickTime → New Screen Recording → record the browser.
+`http://localhost:8099/` full screen. QuickTime (⌘⇧5) → record screen.
 
 | # | Time | On screen | Voiceover |
 |---|------|-----------|-----------|
-| 1 | 0:00–0:15 | Live deck, agents claiming work, census tab | "The Joint Commission attributes 80% of serious medical errors to handoff miscommunication. This is Cotal Care Deck — a hospital ops mesh run by eight REAL agent processes. Every step you see is a real Claude call, durably logged to Postgres before the work advances." |
-| 2 | 0:15–0:35 | Census tab: blocked chain "⛓ waiting on Med rec", then DM in feed | "Tasks chain like real care: transport can't claim until the bed is assigned. When a prerequisite finishes, the agent DMs the specialist — real coordination, all in the durable log." |
-| 3 | 0:35–1:15 | Terminal: `curl -X POST localhost:8099/mesh/kill -d '{"agent":"<working agent>"}'` (or press K). Node greys out. | "Now the moment that matters. I'm killing this agent — a real SIGKILL on a real OS process, mid-discharge. Its heartbeat lapses — the mesh waits a deliberate 30-second grace so latency never reads as death — then the handoff is orphaned…" |
-| 4 | 1:15–1:35 | Rescue: idle agent claims, HANDOFF NEVER DROPPED toast with bookmark | "…and an idle agent wins an atomic anycast race, replays the log, and resumes at the exact bookmark. No step repeated, none lost. We ship the test that proves it." |
-| 5 | 1:35–1:45 | Metrics chips bottom-right | "The proof is computed, not asserted: handoffs done, rescues, rescue time, zero steps repeated, zero handoffs dropped." |
-| 6 | 1:40–1:55 | Reload the page → history replays, metrics recompute | "Reload — the entire history rebuilds from the durable log. The same primitive that makes agents crash-proof IS the HIPAA-grade audit trail." |
-| 7 | 1:55–2:10 | Chat: ask Atlas "How's the census?" → live grounded reply | "Every agent is live — ask the charge nurse about the census and it answers from the actual data." |
-| 8 | 2:10–2:25 | Trigger Incident → RunType triage line | "An ED surge is triaged in real time by a deployed RunType agent — and logged." |
-| 9 | 2:25–2:30 | Deck wide shot | "The agent dies. The handoff never drops. The log is the audit trail. Cotal Care Deck." |
+| 1 | 0:00–0:12 | Live deck, agents working, census tab | "Most serious medical errors happen when patients are handed off between staff. This is Cotal Care Deck. Eight software agents run hospital operations. Every step each agent takes is written to a permanent log before the work moves on." |
+| 2 | 0:12–0:22 | Census tab: chain "⛓ waiting on Med rec", DM in feed | "Tasks connect like care does. Transport waits for a bed. When one task finishes, the agent messages the next specialist." |
+| 3 | 0:22–0:50 | Press K. Node greys out. | "Watch this. I kill one agent in the middle of a discharge. This ends its process on my machine. The mesh waits, then marks it gone." |
+| 4 | 0:50–1:02 | Rescue toast with bookmark | "Another agent picks up the task, reads the log, and continues from the exact step where the first one stopped. Every step is done once. The patient stays covered." |
+| 5 | 1:02–1:12 | Metrics chips, then reload page | "These numbers come straight from the log. Reload the page and the full history rebuilds. The same log that protects the work is the audit trail hospitals need." |
+| 6 | 1:12–1:20 | Deck wide shot | "The agent dies. The work continues. The log proves it. Cotal Care Deck." |
 
-Stack shout-out (if time): "Built on Cotal's mesh model, InsForge Postgres and edge
-functions, Claude via GMI Cloud, and RunType."
+Stack line (if time): "Built with Cotal, InsForge, Claude on GMI Cloud, and RunType."
 
-Upload: YouTube (unlisted) or Loom → paste link in Devpost "Demo Video" field.
+Upload: YouTube (unlisted) or Loom → paste link in the submission's Demo Video field.
