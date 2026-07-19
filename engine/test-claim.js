@@ -36,6 +36,25 @@ const check = (ok, label) => {
   const r3 = await db.claimStale("rescC", stale);
   check(!(r3 && r3.task.tid === "race1"), "fresh heartbeat is not stolen");
 
+  // --- dependency gate: blocked task not claimable until parent completes ---
+  await db.del("care_tasks", "tid=eq.dep_parent");
+  await db.del("care_tasks", "tid=eq.dep_child");
+  await db.insert("care_tasks", [
+    { tid: "dep_parent", kind: "test", title: "parent", patient_id: "p01",
+      status: "requested", owner_agent: null, bookmark: 0, steps: [], artifacts: [], depends_on: null },
+    { tid: "dep_child", kind: "test", title: "child", patient_id: "p01",
+      status: "requested", owner_agent: null, bookmark: 0, steps: [], artifacts: [], depends_on: "dep_parent" },
+  ]);
+  // hide the parent from claiming so only the child is a candidate
+  await db.patch("care_tasks", "tid=eq.dep_parent", { status: "held_dep" });
+  const blocked = await db.claimNew("depAgent");
+  check(!(blocked && blocked.tid === "dep_child"), "blocked child not claimable while parent incomplete");
+  await db.patch("care_tasks", "tid=eq.dep_parent", { status: "completed" });
+  const unblocked = await db.claimNew("depAgent");
+  check(!!unblocked && unblocked.tid === "dep_child", "child claimable once parent completed");
+  await db.del("care_tasks", "tid=eq.dep_parent");
+  await db.del("care_tasks", "tid=eq.dep_child");
+
   await db.del("care_tasks", "tid=eq.race1");
   await db.patch("care_tasks", "status=eq.held_for_test", { status: "requested" });
   process.exit(failures ? 1 : 0);

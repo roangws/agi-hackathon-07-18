@@ -16,7 +16,7 @@ const worker = id => spawn("node", ["engine/worker.js", id],
   await db.patch("care_tasks", "status=eq.requested", { status: "held_for_test" });
   await db.patch("care_tasks", "status=eq.in_progress", { status: "held_for_test" });
   await db.patch("care_tasks", `tid=eq.${TID}`,
-    { status: "requested", owner_agent: null, bookmark: 0, artifacts: [] });
+    { status: "requested", owner_agent: null, bookmark: 0, artifacts: [], depends_on: null });
   await db.del("mesh_log", `task_id=eq.${TID}`);
 
   console.log("… spawning worker A (david)");
