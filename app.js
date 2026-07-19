@@ -37,7 +37,7 @@ const IF = (() => {
   if(on) setInterval(flush, 1500);
   return {
     on,
-    persist(row){ if(on) queue.push({seq:row.seq,kind:row.cls,actor:row.ev,channel:"",detail:row.detail}); },
+    persist(row){ if(on && !S.live) queue.push({seq:row.seq,kind:row.cls,actor:row.ev,channel:"",detail:row.detail}); },
     async loadHistory(){
       if(!on) { badge(); return []; }
       try{
@@ -71,6 +71,7 @@ const S = {
   playing:true, speed:1, t0:Date.now(),
   msgs:0, events:0, seq:0,
   pulses:[], particles:[], dying:new Set(), busy:false,
+  live:false,  // true = deck reports the REAL worker fleet instead of the script
   presence:{}, // id -> 'working'|'idle'|'offline'
   tasks:{},    // id -> task label
 };
@@ -445,12 +446,14 @@ function showToast(img,t,s){
 /* ---------- tabs ---------- */
 function switchTab(which){
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===which));
-  const isFeed=which==="feed";
-  feed.style.display=isFeed?"flex":"none";
-  ledgerEl.style.display=isFeed?"none":"block";
-  document.getElementById("railHead").innerHTML = isFeed
-    ? "#build · #review · #ops · #incident"
-    : "<b>durable JetStream log</b> · ordered · replayable";
+  const census=document.getElementById("census");
+  feed.style.display   = which==="feed"   ? "flex" : "none";
+  ledgerEl.style.display = which==="ledger" ? "block" : "none";
+  if(census) census.style.display = which==="census" ? "block" : "none";
+  document.getElementById("railHead").innerHTML =
+    which==="feed"   ? "#handoffs · #pharmacy · #bed-flow · #rapid-response" :
+    which==="census" ? "<b>patient census</b> · synthetic data · live handoff progress" :
+                       "<b>durable audit log</b> · ordered · replayable";
 }
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
 
@@ -551,6 +554,26 @@ async function boot(){
   RT.init(); GMI.init(); initComposer();
   document.getElementById("pwCotal")?.classList.add("on");
   if(IF.on) document.getElementById("pwIf")?.classList.add("on");
+
+  /* mode gate: ride the REAL worker fleet when it's up (?mode=demo forces script) */
+  const forced=new URLSearchParams(location.search).get("mode");
+  let liveOk=false;
+  if(forced!=="demo"){
+    try{ const r=await fetch("/mesh/status"); const j=await r.json(); liveOk=!!j.on; }catch{}
+  }
+  if(liveOk && window.LIVE){
+    await LIVE.init();
+    log("presence","mesh online · riding the REAL agent fleet","presence");
+    setTimeout(()=>document.getElementById("loading").classList.add("hide"), 700);
+    const auto=new URLSearchParams(location.search).get("auto");
+    if(auto==="kill")   setTimeout(()=>document.getElementById("btnKill").click(), 12000);
+    if(auto==="replay") setTimeout(()=>document.getElementById("btnReplay").click(), 4000);
+    return;                       // scripted chatter/beats stay off in live mode
+  }
+  if(forced==="live" && !liveOk)
+    say("atlas","#handoffs","live mesh unreachable — falling back to scripted demo mode (start with: node server.js --mesh)","sys");
+  document.querySelector(".live").innerHTML='<span class="dot"></span> Demo · scripted';
+
   // Restore the durable log from InsForge — proves the record survives a reload.
   const hist = await IF.loadHistory();
   if(hist.length){

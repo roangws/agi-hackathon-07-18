@@ -109,6 +109,25 @@
   .msg.sys{background:rgba(201,246,88,.06);border-color:rgba(201,246,88,.25)}
   .msg.sys .body{color:var(--lime)}
 
+  /* census */
+  .census{flex:1;overflow-y:auto;padding:10px 14px}
+  .census::-webkit-scrollbar{width:5px}.census::-webkit-scrollbar-thumb{background:#26262a;border-radius:3px}
+  .crow{display:grid;grid-template-columns:10px 1fr auto;grid-template-areas:
+    "dot name mrn" "dot cond cond" "dot task task";gap:2px 9px;align-items:center;
+    padding:9px 6px;border-bottom:1px solid rgba(255,255,255,.05);animation:slidein .3s}
+  .crow .cdot{grid-area:dot;width:8px;height:8px;border-radius:50%;align-self:start;margin-top:4px}
+  .cdot.a1,.cdot.a2{background:var(--red);box-shadow:0 0 6px var(--red)}
+  .cdot.a3{background:#f2c94c;box-shadow:0 0 5px rgba(242,201,76,.6)}
+  .cdot.a4,.cdot.a5{background:var(--lime)}
+  .crow .cname{grid-area:name;font-size:12.5px;font-weight:600}
+  .crow .cmrn{grid-area:mrn;font-size:9.5px;color:var(--faint);font-family:var(--mono)}
+  .crow .ccond{grid-area:cond;font-size:10.5px;color:var(--dim)}
+  .crow .ctask{grid-area:task;font-size:10px;color:var(--oc,#9a9d97);font-family:var(--mono);
+    display:flex;align-items:center;gap:8px;margin-top:2px}
+  .crow .ctask.done{color:var(--faint)}
+  .crow .cbar{flex:1;max-width:110px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+  .crow .cbar b{display:block;height:100%;background:var(--oc,var(--lime));border-radius:2px;transition:width .6s}
+
   /* ledger */
   .ledger{flex:1;overflow-y:auto;padding:10px 14px;font-family:var(--mono);font-size:11px}
   .ledger::-webkit-scrollbar{width:5px}.ledger::-webkit-scrollbar-thumb{background:#26262a;border-radius:3px}
@@ -249,10 +268,12 @@
     <aside>
       <div class="tabs">
         <div class="tab on" data-tab="feed">Channels</div>
-        <div class="tab" data-tab="ledger">Replay Log</div>
+        <div class="tab" data-tab="census">Census</div>
+        <div class="tab" data-tab="ledger">Audit Log</div>
       </div>
-      <div class="rail-head" id="railHead">#build · #review · #ops · #incident</div>
+      <div class="rail-head" id="railHead">#handoffs · #pharmacy · #bed-flow · #rapid-response</div>
       <div class="feed" id="feed"></div>
+      <div class="census" id="census" style="display:none"></div>
       <div class="ledger" id="ledger" style="display:none"></div>
       <div class="composer" id="composer">
         <select id="agentSel" title="Which agent replies (live, via GMI)"></select>
@@ -286,6 +307,7 @@
 </div>
 
 <script src="insforge-config.js"></script>
+<script src="live.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
