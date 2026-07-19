@@ -4,7 +4,7 @@ Hospital-operations mesh with a **real agent engine**: real worker processes, re
 kill, real anycast claims, real resume from a durable-log bookmark. The deck is the
 projector-ready window onto it.
 
-**Live:** https://cotal-deck.insforge.site · Synthetic data only; ops-assist, not
+**Live:** https://care-deck.insforge.site · Synthetic data only; ops-assist, not
 clinical decision-making.
 
 ## Architecture

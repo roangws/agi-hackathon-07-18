@@ -4,7 +4,7 @@
 
 Built for the AGI Summit 2026 Hackathon, Cotal track.
 
-**Live:** https://cotal-deck.insforge.site
+**Live:** https://care-deck.insforge.site
 
 > Kill a working agent — a real `SIGKILL` on a real OS process — mid-patient-handoff.
 > Another agent claims the task through anycast, replays the durable log, and resumes
