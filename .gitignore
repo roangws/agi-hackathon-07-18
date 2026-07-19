@@ -35,3 +35,7 @@ npm-debug.log*
 .windsurf
 insforge-config.js
 runtype-config.js
+
+# build output for InsForge deploy
+site/
+dist/

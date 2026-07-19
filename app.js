@@ -199,6 +199,9 @@ function ic(name,cls){ return `<svg class="mi ${cls||''}"><use href="#i-${name}"
    same-origin proxy (server.js) — real API call, build once callable anywhere.
    The proxy keeps the RunType key server-side and adds the CORS the browser needs. */
 const RT = (() => {
+  // RunType is proxied by an InsForge edge function (keeps the key server-side,
+  // adds CORS). Same URL works locally and on the deployed InsForge site.
+  const URL_ = ((window.INSFORGE && window.INSFORGE.host) || "") + "/functions/rt-triage";
   let on=false, calls=0, failed=false;
   function badge(state){
     const dot=document.getElementById("rtDot"), n=document.getElementById("stRt");
@@ -210,8 +213,8 @@ const RT = (() => {
   return {
     get on(){ return on; },
     async init(){
-      try{ const r=await fetch("/rt/health"); const j=await r.json(); on=!!j.enabled; }
-      catch{ on=false; }        // running under a plain static server → RunType off
+      try{ const r=await fetch(URL_); const j=await r.json(); on=!!j.enabled; }
+      catch{ on=false; }
       badge();
       document.getElementById("pwRt")?.classList.toggle("on", on);
     },
@@ -219,13 +222,13 @@ const RT = (() => {
       if(!on) return null;
       badge("live");
       try{
-        const r=await fetch("/rt/dispatch",{
+        const r=await fetch(URL_,{
           method:"POST", headers:{"Content-Type":"application/json"},
           body:JSON.stringify({message})
         });
         if(!r.ok) throw new Error(r.status);
-        let out=await r.json();                    // RunType returns a JSON string
-        if(typeof out!=="string") out=out.output||out.summary||JSON.stringify(out);
+        const j=await r.json();                    // { text: "..." }
+        const out = j.text || j.output || j.summary || "";
         calls++; failed=false; badge(); return String(out).trim();
       }catch(e){ failed=true; badge(); return null; }
     }
