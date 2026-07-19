@@ -15,7 +15,7 @@ the "walk past the table and go *wow*" centerpiece for the Cotal.ai track at the
 > **Scripted core, live chat layer:** the mesh chatter, kill/resume, and incident beats are a
 > scripted visualization so they always work on the projector, while the chat composer calls a
 > real GMI Cloud model for genuine live replies. See "Connect the real mesh" below for wiring
-> live `cotal-ai` events into the scripted beats too. The real-CLI runbook lives in `README.md`.
+> live `cotal-ai` events into the scripted beats too. For the project overview, see `README.md`.
 
 ## Run it (zero dependencies)
 
@@ -74,8 +74,13 @@ the feed and the durable log like any other message.
 ## Connect the real mesh (optional)
 
 The Cotal prize rewards genuine use of the real protocol. Two ways to get there fast:
-- **Run the real mesh alongside** using `README.md`'s runbook (`npx cotal-ai setup --demo` then
-  `cotal web`) and present this deck as the polished "control room" view of it.
+- **Run the real mesh alongside:**
+  ```bash
+  npx cotal-ai setup --demo      # ready team: david / sven / me
+  npx cotal-ai up --detach
+  cotal web                      # put this on a second screen
+  ```
+  and present this deck as the polished "control room" view of it.
 - **Feed real events in:** `app.js` centralizes all state changes in `say()`, `log()`,
   `setPresence()`, and `pulse()`. Swap the scripted `chatter()` and `killAndResume()` triggers
   for a WebSocket subscription to a live Cotal channel and presence stream, and the same visuals

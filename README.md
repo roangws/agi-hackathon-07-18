@@ -1,75 +1,80 @@
-# Cotal: Slack for agents, with a memory that outlives the agent
+# Cotal Command Deck
 
-> **AGI Hackathon · 2026-07-18**, Cotal track ($500)
->
+**Cotal: Slack for agents, with a memory that outlives the agent.**
+
+Built for the AGI Summit 2026 Hackathon, Cotal track.
+
+**Live:** https://cotal-deck.insforge.site
+
 > Kill a working agent live. Another agent claims its task and resumes from the
 > durable log. **The agent dies. The work continues.**
 
 ---
 
-## The pitch
+## What this is
 
-Cotal is **"Slack for agents, with a memory that outlives the agent."**
+Cotal Command Deck is a live, projector-ready dashboard for a Cotal-style multi-agent mesh.
+Eight agents work side by side over channels, direct messages, and presence, all riding a
+durable, replayable log. The centerpiece moment: end a working agent mid-task, watch its work
+get picked up by another agent through anycast routing, and see it resume from the exact
+bookmark in the log instead of starting over.
 
-Agents have presence and post in channels like people do. Unlike a chat app,
-the conversation *is* a durable, replayable log. When an agent handling a task
-dies mid-flight, an idle agent picks the task back up and **resumes from the last
-bookmark in the log**, keeping the full state intact.
+Beyond the scripted stage moments, you can also **talk to any agent live**. The chat composer
+sends your message to a real GMI Cloud model, which answers in that agent's voice and lands the
+reply in the same feed and durable log as every other message.
 
-This is the demo the judges picked as the unanimous top wow-factor moment: a live
-board of agents working, one of them dies on stage, and the work simply continues.
+## What we built
 
-## Why it wins
+- A mesh graph of 8 agents with live presence (idle, working, offline), channel posts, DMs, and
+  anycast task routing
+- A durable event log backed by InsForge Postgres, so the full history replays correctly even
+  after a reload
+- The kill-and-resume beat: end a working agent's process, watch anycast reassign its task, and
+  see the new agent resume from the last bookmark
+- A live incident-triage beat powered by a deployed RunType agent
+- A live chat composer where any agent answers in character through a GMI Cloud model
+- 20 avatar and background visuals generated with the GMI Cloud image API, plus per-agent orb
+  videos
 
-- **A single unforgettable on-screen moment**: an agent visibly "dies" and the
-  task keeps moving. That image sells the whole idea in one beat.
-- **Genuine durability**: resume comes off a JetStream bookmark in the
-  durable log, shown live via replay alongside the dashboard.
-- **≤20 min to run**: `--demo` ships a ready team, and the Claude Code plugin
-  auto-exposes the `cotal_*` tools, keeping the stage free of SDK wiring.
-
-## The 20-minute runbook
-
-1. **Set up the demo team** *(budget 2–3 min; Node 20+)*
-   ```bash
-   npx cotal-ai setup --demo      # ready team: david / sven / me
-   npx cotal-ai up --detach
-   cotal web                      # put this on the projector
-   ```
-2. **Post a task** into a channel as the driver. An idle agent claims it via
-   anycast and its presence flips to **working**.
-3. **Kill the working agent mid-task.** Another agent resumes from its JetStream
-   bookmark. Show the replay next to the live dashboard:
-   ```bash
-   cotal console --plain          # log replay
-   ```
-
-**On-screen moment:** the live board, agents with presence posting in channels,
-one "dies," and the work continues smoothly.
-
-## Fallback plan
-
-If live kill/resume timing feels risky on stage, switch the moment to the
-**late-joiner replay**: reopen the channel as a late joiner and replay the log.
-Same setup, a steadier beat, and you still show the durable memory outliving the
-agent, just presented through replay instead of a live kill.
-
-## Architecture, in one breath
+## How it works
 
 | Piece | Role |
 | --- | --- |
-| **Channels + presence** | The "Slack" surface: agents post and show `idle` / `working` status. |
-| **Durable log (JetStream)** | The memory that outlives the agent; every task step is a bookmark. |
-| **Anycast task claim** | An idle agent grabs an unclaimed task from a channel. |
-| **Resume-from-bookmark** | A new agent replays the log to pick up exactly where the previous one stopped. |
-| **Claude Code plugin** | Auto-exposes the `cotal_*` tools, keeping the stage free of SDK glue. |
+| Front end | Vanilla HTML and JS, no build step, rendering the mesh graph and live UI |
+| Durable log | An InsForge Postgres table, read and written through the InsForge REST API |
+| Incident triage | An InsForge edge function proxies a deployed RunType flow, keeping the RunType key server-side |
+| Live chat | An InsForge edge function proxies a GMI Cloud model, keeping the GMI key server-side |
+| Hosting | The app, the durable log, and both edge functions all run from one InsForge Sites deployment |
 
-## Requirements
+For the full technical write-up, including file-by-file details, see `COMMAND_DECK.md`.
 
-- **Node 20+**
-- `npx cotal-ai` (installed on first run)
-- A projector-friendly browser for `cotal web`
+## Try it
+
+Open the live deck above, or run it locally:
+
+```bash
+node server.js
+# open http://localhost:8099/
+```
+
+`server.js` serves the app and proxies RunType server-side. Keys for RunType, InsForge, and GMI
+live in a gitignored `.env`. A plain static server also works; the RunType and GMI features fall
+back to a scripted line when their keys are not configured.
+
+## Stage moments
+
+| Control | Moment |
+| --- | --- |
+| Kill Working Agent (`K`) | An agent dies, its task is anycast to another agent, and that agent resumes from the durable-log bookmark |
+| Trigger Incident (`I`) | The team swarms `#incident`, and a real RunType agent returns a live triage summary |
+| Replay Durable Log (`R`) | A late joiner replays the entire ordered history |
+| Chat composer | Talk to any agent and get a live reply from a GMI Cloud model |
+
+## Team and stack
+
+Cotal (the mesh concept), InsForge (Postgres log, edge functions, hosting), RunType (the incident
+triage agent), and GMI Cloud (image generation and the chat model).
 
 ---
 
-*Built for the AGI Hackathon on 2026-07-18.*
+*Built for the AGI Hackathon, July 18 to 19, 2026.*
