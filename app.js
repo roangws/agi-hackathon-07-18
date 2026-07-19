@@ -470,16 +470,85 @@ document.getElementById("speed").oninput=e=>{ S.speed=+e.target.value;
 
 /* keyboard shortcuts for a clean stage demo */
 addEventListener("keydown",e=>{
+  if(e.target && e.target.tagName==="INPUT") return;   // don't hijack the chat box
   if(e.key===" "){e.preventDefault();document.getElementById("btnPlay").click();}
   if(e.key.toLowerCase()==="k") document.getElementById("btnKill").click();
   if(e.key.toLowerCase()==="i") document.getElementById("btnIncident").click();
   if(e.key.toLowerCase()==="r") document.getElementById("btnReplay").click();
 });
 
+/* ================= GMI: live agent chat =================
+   You type → a real GMI model replies in the selected agent's voice, via an
+   InsForge edge function (key server-side). Reply lands in the feed + durable log. */
+const GMI = (() => {
+  const URL_ = ((window.INSFORGE && window.INSFORGE.host) || "") + "/functions/gmi-chat";
+  let on=false;
+  return {
+    get on(){ return on; },
+    async init(){
+      try{ const r=await fetch(URL_); const j=await r.json(); on=!!j.enabled; }catch{ on=false; }
+      document.getElementById("pwGmi")?.classList.toggle("on", on);
+    },
+    async ask(system, message){
+      const r=await fetch(URL_,{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({system,message})});
+      if(!r.ok) throw new Error(r.status);
+      const j=await r.json(); return (j.text||"").trim();
+    }
+  };
+})();
+
+const PERSONAS = {
+  atlas:"You are Atlas, the orchestrator of a multi-agent mesh. You route and coordinate work. Reply in ONE or TWO short sentences.",
+  david:"You are David, a senior engineer agent. Practical, ships code. Reply in ONE or TWO short sentences.",
+  nova:"You are Nova, a terse code-reviewer agent. Blunt, quality-focused. Reply in ONE or TWO short sentences.",
+  sven:"You are Sven, a friendly guide agent who explains things simply. Reply in ONE or TWO short sentences.",
+  echo:"You are Echo, a researcher agent. You cite and summarize. Reply in ONE or TWO short sentences.",
+  vega:"You are Vega, an ops/SRE sentinel agent. Calm under fire, incident-focused. Reply in ONE or TWO short sentences.",
+  iris:"You are Iris, a product designer agent. Care about UX and clarity. Reply in ONE or TWO short sentences.",
+  zephyr:"You are Zephyr, a data analyst agent. Numbers-driven. Reply in ONE or TWO short sentences.",
+};
+
+/* wire the live-chat composer */
+function initComposer(){
+  const sel=document.getElementById("agentSel");
+  const input=document.getElementById("chatIn");
+  const send=document.getElementById("chatSend");
+  if(!sel) return;
+  AGENTS.forEach(a=>{ const o=document.createElement("option"); o.value=a.id; o.textContent=a.name; sel.appendChild(o); });
+  sel.value="atlas";
+  async function submit(){
+    const id=sel.value, msg=input.value.trim();
+    if(!msg || S.busy) return;
+    switchTab("feed");
+    say("You", `you → ${byId[id].name}`, msg, "dm");
+    log("dm", `You ⇢ ${byId[id].name}`, "dm");
+    input.value=""; send.disabled=true;
+    const wasOff = S.presence[id]==="offline";
+    if(!wasOff){ setPresence(id,"working","thinking…"); pulse("atlas",id,byId[id].c,true); }
+    try{
+      const reply = GMI.on ? await GMI.ask(PERSONAS[id]||"", msg) : null;
+      if(reply){
+        say(id, `#chat`, reply, "msg");
+        log("message", `${byId[id].name} replied (GMI live)`, "msg");
+        pulse(id,"atlas",byId[id].c);
+      } else {
+        say(id, `#chat`, "(live model unavailable — is GMI enabled?)", "sys");
+      }
+    }catch(e){
+      say(id, `#chat`, "(model error — try again)", "sys");
+    }
+    if(!wasOff && S.presence[id]!=="offline") setPresence(id,"idle","");
+    send.disabled=false; input.focus();
+  }
+  send.onclick=submit;
+  input.addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); });
+}
+
 /* ---------- boot ---------- */
 async function boot(){
   layout(); draw();
-  RT.init();
+  RT.init(); GMI.init(); initComposer();
   document.getElementById("pwCotal")?.classList.add("on");
   if(IF.on) document.getElementById("pwIf")?.classList.add("on");
   // Restore the durable log from InsForge — proves the record survives a reload.
@@ -514,6 +583,8 @@ async function boot(){
   if(auto==="kill")     setTimeout(()=>{switchTab("feed");killAndResume();},1500);
   if(auto==="incident") setTimeout(()=>{switchTab("feed");incident();},1500);
   if(auto==="replay")   setTimeout(()=>replayLog(),1500);
+  if(auto==="chat")     setTimeout(()=>{const i=document.getElementById("chatIn");
+    i.value="In one sentence, what makes this mesh crash-proof?";document.getElementById("chatSend").click();},1800);
 }
 // wait for emblem/bg to have a chance to load, then boot
 window.addEventListener("load", ()=> setTimeout(boot, 300));

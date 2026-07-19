@@ -166,6 +166,29 @@
     border-radius:50%;animation:rot 1s linear infinite}
   @keyframes rot{to{transform:rotate(360deg)}}
   .loading .lt{color:var(--dim);letter-spacing:2px;font-size:12px;text-transform:uppercase;font-family:var(--mono)}
+
+  /* legend on the graph */
+  .legend{position:absolute;bottom:18px;left:24px;z-index:3;display:flex;gap:16px;align-items:center;
+    flex-wrap:wrap;font-size:10px;color:var(--faint);font-family:var(--mono);pointer-events:none;max-width:70%}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend .lg-line{width:16px;height:2px;background:rgba(255,255,255,.4);border-radius:2px}
+  .legend .lg-dot{width:7px;height:7px;border-radius:50%}
+  .legend .lg-dot.work{background:var(--lime);box-shadow:0 0 6px var(--lime)}
+  .legend .lg-dot.idle{background:var(--dim)}
+  .legend .lg-dot.off{background:var(--red)}
+  .legend .lg-hint{color:var(--lime-dim)}
+
+  /* live chat composer */
+  .composer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:var(--panel);align-items:center}
+  .composer select{background:var(--card);border:1px solid var(--line2);color:var(--text);border-radius:999px;
+    padding:9px 10px;font-size:11px;font-family:var(--mono);max-width:96px;cursor:pointer}
+  .composer input{flex:1;background:var(--card);border:1px solid var(--line2);color:var(--text);border-radius:999px;
+    padding:10px 14px;font-size:12.5px;outline:none}
+  .composer input:focus{border-color:var(--lime)}
+  .composer button{background:var(--lime);border:none;color:#0c0c0c;border-radius:50%;width:38px;height:38px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+  .composer button:hover{background:#d4ff66}
+  .composer button:disabled{opacity:.5;cursor:default}
 </style>
 </head>
 <body>
@@ -210,8 +233,15 @@
       <canvas id="mesh"></canvas>
       <div id="stageFlash"></div>
       <div class="stage-title">
-        <div class="k">Agent Mesh · NATS / JetStream</div>
+        <div class="k">Mesh Graph · NATS / JetStream</div>
         <div class="v">channels · DMs · presence · anycast · durable replay</div>
+      </div>
+      <div class="legend">
+        <span><i class="lg-line"></i> message flow</span>
+        <span><i class="lg-dot work"></i> working</span>
+        <span><i class="lg-dot idle"></i> idle</span>
+        <span><i class="lg-dot off"></i> terminated</span>
+        <span class="lg-hint">Talk to any agent below → live reply via GMI</span>
       </div>
       <!-- orb nodes injected here -->
     </section>
@@ -224,6 +254,11 @@
       <div class="rail-head" id="railHead">#build · #review · #ops · #incident</div>
       <div class="feed" id="feed"></div>
       <div class="ledger" id="ledger" style="display:none"></div>
+      <div class="composer" id="composer">
+        <select id="agentSel" title="Which agent replies (live, via GMI)"></select>
+        <input id="chatIn" placeholder="Talk to the mesh — live GMI agent…" autocomplete="off"/>
+        <button id="chatSend" title="Send"><svg class="ic"><use href="#i-route"/></svg></button>
+      </div>
     </aside>
   </main>
 
@@ -238,6 +273,7 @@
       <span class="pw" id="pwCotal"><span class="pwdot"></span><b>Cotal</b></span>
       <span class="pw" id="pwIf"><span class="pwdot"></span><b>InsForge</b></span>
       <span class="pw" id="pwRt"><span class="pwdot"></span><b>RunType</b></span>
+      <span class="pw" id="pwGmi"><span class="pwdot"></span><b>GMI</b></span>
     </div>
   </footer>
 </div>
