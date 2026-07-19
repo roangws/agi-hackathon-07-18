@@ -1,11 +1,12 @@
-/* Cotal Command Deck — tiny zero-dependency server.
-   Serves the static deck AND proxies RunType server-side so:
-     (a) the browser hits a same-origin endpoint (RunType's API omits CORS
-         headers on POST responses, so a direct browser fetch is blocked), and
-     (b) the RunType API key stays on the server, never shipped to the client.
-   Run:  node server.js   (reads RUNTYPE_* from .env) */
+/* Cotal Care Deck — tiny zero-dependency server.
+   Serves the static deck, proxies RunType server-side, and (with --mesh)
+   runs the REAL agent fleet: 8 worker child processes with kill/revive
+   control endpoints, so the "agent dies, handoff survives" beat is a real
+   SIGKILL against a real OS process.
+   Run:  node server.js --mesh   (reads keys from .env) */
 const http = require("http"), https = require("https"),
-      fs = require("fs"), path = require("path"), url = require("url");
+      fs = require("fs"), path = require("path"), url = require("url"),
+      { spawn } = require("child_process");
 
 // --- load .env ---
 const env = {};
@@ -37,8 +38,81 @@ function serveStatic(req, res) {
   });
 }
 
+/* ================= real agent fleet ================= */
+const MESH_ON = process.argv.includes("--mesh") || process.env.MESH === "on";
+const FLEET = {};                 // agentId -> { proc, alive, bootRetried }
+let ROSTER = [];
+if (MESH_ON) {
+  ROSTER = require("./engine/personas").ROSTER;
+  ROSTER.forEach(a => spawnWorker(a.id));
+}
+
+function spawnWorker(id) {
+  const proc = spawn(process.execPath, [path.join(__dirname, "engine", "worker.js"), id],
+    { stdio: ["ignore", "inherit", "inherit"] });
+  FLEET[id] = { proc, alive: true, bootRetried: FLEET[id]?.bootRetried || false };
+  proc.on("exit", (code, sig) => {
+    const f = FLEET[id];
+    if (!f || f.proc !== proc) return;
+    f.alive = false;
+    // A crash within 5s of boot gets one retry; a kill stays dead until /mesh/revive —
+    // death must be visible, not silently auto-healed.
+    if (sig !== "SIGKILL" && proc.spawnargs && (Date.now() - f.bornAt < 5000) && !f.bootRetried) {
+      f.bootRetried = true;
+      setTimeout(() => spawnWorker(id), 1000);
+    }
+  });
+  FLEET[id].bornAt = Date.now();
+  return proc;
+}
+
+function json(res, code, obj) {
+  res.writeHead(code, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(obj));
+}
+
+function readBody(req) {
+  return new Promise(resolve => {
+    let b = ""; req.on("data", c => b += c);
+    req.on("end", () => { try { resolve(JSON.parse(b || "{}")); } catch { resolve({}); } });
+  });
+}
+
+async function handleMesh(p, req, res) {
+  if (p === "/mesh/status")
+    return json(res, 200, {
+      on: MESH_ON,
+      agents: Object.entries(FLEET).map(([id, f]) => ({ id, pid: f.proc.pid, alive: f.alive })),
+    });
+  if (!MESH_ON) return json(res, 503, { error: "mesh off — start with: node server.js --mesh" });
+
+  if (p === "/mesh/kill" && req.method === "POST") {
+    const { agent } = await readBody(req);
+    const f = FLEET[agent];
+    if (!f || !f.alive) return json(res, 404, { error: `no live worker '${agent}'` });
+    const pid = f.proc.pid;
+    f.proc.kill("SIGKILL");                       // a real SIGKILL on a real process
+    return json(res, 200, { killed: agent, pid });
+  }
+  if (p === "/mesh/revive" && req.method === "POST") {
+    const { agent } = await readBody(req);
+    if (!ROSTER.find(a => a.id === agent)) return json(res, 404, { error: `unknown agent '${agent}'` });
+    if (FLEET[agent]?.alive) return json(res, 200, { revived: agent, note: "already alive" });
+    spawnWorker(agent);
+    return json(res, 200, { revived: agent, pid: FLEET[agent].proc.pid });
+  }
+  if (p === "/mesh/reset" && req.method === "POST") {
+    const seed = spawn(process.execPath, [path.join(__dirname, "engine", "seed.js")], { stdio: "inherit" });
+    seed.on("exit", code => json(res, code === 0 ? 200 : 500, { reset: code === 0 }));
+    return;
+  }
+  json(res, 404, { error: "unknown mesh endpoint" });
+}
+
 const server = http.createServer((req, res) => {
   const p = url.parse(req.url).pathname;
+
+  if (p.startsWith("/mesh/")) return handleMesh(p, req, res);
 
   if (p === "/rt/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -78,5 +152,10 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () =>
-  console.log(`Cotal Command Deck → http://localhost:${PORT}` +
-    (RT_ON ? "  · RunType proxy ON" : "  · RunType off (set RUNTYPE_* in .env)")));
+  console.log(`Cotal Care Deck → http://localhost:${PORT}` +
+    (MESH_ON ? `  · REAL mesh: ${Object.keys(FLEET).length} agent processes` : "  · mesh off (run with --mesh)") +
+    (RT_ON ? "  · RunType proxy ON" : "")));
+
+process.on("exit", () => Object.values(FLEET).forEach(f => { try { f.proc.kill("SIGKILL"); } catch {} }));
+process.on("SIGINT", () => process.exit(0));
+process.on("SIGTERM", () => process.exit(0));
