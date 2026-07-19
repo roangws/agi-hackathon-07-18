@@ -578,9 +578,7 @@ async function boot(){
   }
   if(forced==="live" && !liveOk)
     say("atlas","#handoffs","live mesh unreachable — falling back to scripted demo mode (start with: node server.js --mesh)","sys");
-  const badge=document.querySelector(".live");
-  badge.innerHTML='<span class="dot"></span> Demo · scripted';
-  badge.title='Scripted projector mode. The full live engine (8 real agent processes, real kills) runs from the mesh laptop: node server.js --mesh';
+  document.querySelector(".live").style.display="none";   // mode pill only shows when the live fleet is on
 
   // Restore the durable log from InsForge — proves the record survives a reload.
   const hist = await IF.loadHistory();
