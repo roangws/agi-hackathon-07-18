@@ -1,4 +1,4 @@
-# Cotal Care Deck: technical write-up
+# AGI Hospital: technical write-up
 
 Hospital-operations mesh with a **real agent engine**: real worker processes, real
 kill, real anycast claims, real resume from a durable-log bookmark. The deck is the

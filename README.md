@@ -1,4 +1,4 @@
-# Cotal Care Deck
+# AGI Hospital
 
 **Slack for clinical agents, with a memory that outlives the shift.**
 
