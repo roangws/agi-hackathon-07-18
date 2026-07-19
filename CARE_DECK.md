@@ -64,6 +64,8 @@ fail, so healthy agents are never robbed. `engine/test-claim.js` proves both rac
 - **live** (default when `/mesh/status` is up): the deck *reports* the fleet —
   polls `mesh_log` (1s), `agent_state` (1.5s), census (2.5s); renders through the
   same `say()/log()/setPresence()/pulse()` seams the script uses.
+- **demo** (`?mode=demo`, or auto-fallback with a banner): the original scripted
+  beats, projector-safe, zero backend needed.
 
 ## Stage script (90 seconds)
 

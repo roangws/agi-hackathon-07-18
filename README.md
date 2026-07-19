@@ -108,6 +108,7 @@ effect in the vendor's console:
 node engine/seed.js          # reseed synthetic patients + tasks
 node server.js --mesh        # deck + 8 real agent worker processes
 # open http://localhost:8099/          → live mode (real agents)
+# open http://localhost:8099/?mode=demo → projector-safe scripted mode
 ```
 
 Tests:
