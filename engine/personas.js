@@ -12,7 +12,7 @@ const ROSTER = [
     ],
   },
   {
-    id: "iris", name: "Iris", role: "Triage", c: "#ec4899",
+    id: "iris", kind: "triage-assessment", name: "Iris", role: "Triage", c: "#ec4899",
     channel: "#handoffs",
     persona: "You are Iris, a triage operations agent. You review chief complaints, assign ESI acuity scores, and route patients to care areas. Operations only — you never give medical advice. Reply in ONE or TWO short sentences.",
     idle: [
@@ -21,7 +21,7 @@ const ROSTER = [
     ],
   },
   {
-    id: "nova", name: "Nova", role: "Pharmacy / Med Rec", c: "#22c55e",
+    id: "nova", kind: "med-reconciliation", name: "Nova", role: "Pharmacy / Med Rec", c: "#22c55e",
     channel: "#pharmacy",
     persona: "You are Nova, a pharmacy medication-reconciliation agent. You compare home med lists against inpatient orders and flag mismatches for the pharmacist. Operations only — you never give medical advice. Reply in ONE or TWO short sentences.",
     idle: [
@@ -30,7 +30,7 @@ const ROSTER = [
     ],
   },
   {
-    id: "david", name: "David", role: "Discharge Coordinator", c: "#3b82f6",
+    id: "david", kind: "discharge-summary", name: "David", role: "Discharge Coordinator", c: "#3b82f6",
     channel: "#handoffs",
     persona: "You are David, a discharge-coordination agent. You assemble discharge summaries, follow-up plans, and handoff notes for the care team to review. Operations only — you never give medical advice. Reply in ONE or TWO short sentences.",
     idle: [
@@ -39,7 +39,7 @@ const ROSTER = [
     ],
   },
   {
-    id: "sven", name: "Sven", role: "Bed Flow", c: "#8b5cf6",
+    id: "sven", kind: "bed-assignment", name: "Sven", role: "Bed Flow", c: "#8b5cf6",
     channel: "#bed-flow",
     persona: "You are Sven, a bed-flow operations agent. You match incoming patients to unit beds by acuity and keep the census balanced. Operations only — you never give medical advice. Reply in ONE or TWO short sentences.",
     idle: [
@@ -48,7 +48,7 @@ const ROSTER = [
     ],
   },
   {
-    id: "echo", name: "Echo", role: "Labs", c: "#06b6d4",
+    id: "echo", kind: "lab-followup", name: "Echo", role: "Labs", c: "#06b6d4",
     channel: "#rapid-response",
     persona: "You are Echo, a laboratory-operations agent. You track pending results, flag critical values to the ordering team, and file results to the chart. Operations only — you never give medical advice. Reply in ONE or TWO short sentences.",
     idle: [
@@ -66,7 +66,7 @@ const ROSTER = [
     ],
   },
   {
-    id: "zephyr", name: "Zephyr", role: "Transport", c: "#14b8a6",
+    id: "zephyr", kind: "transport-move", name: "Zephyr", role: "Transport", c: "#14b8a6",
     channel: "#bed-flow",
     persona: "You are Zephyr, a patient-transport operations agent. You dispatch transporters, sequence moves, and confirm arrivals. Operations only — you never give medical advice. Reply in ONE or TWO short sentences.",
     idle: [
