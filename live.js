@@ -187,11 +187,18 @@ window.LIVE = (() => {
       showToast("scene-death.png", "NO AGENT MID-TASK", "Wait until an agent picks up a handoff, then kill it mid-work for the full effect.");
       return;
     }
-    const r = await fetch("/mesh/kill", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agent: victim.aid }),
-    });
-    const j = await r.json();
+    let j = {};
+    try {
+      const r = await fetch("/mesh/kill", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent: victim.aid }),
+      });
+      j = await r.json();
+    } catch {
+      showToast("scene-death.png", "FLEET CONTROLS LIVE ON THE MESH HOST",
+        "The worker fleet runs as OS processes on the mesh host. This viewer shows their live durable log; the kill switch works where the processes live.");
+      return;
+    }
     if (j.killed) {
       say("You", "#rapid-response",
         `sent <b>SIGKILL</b> to ${byId[j.killed].name}'s worker process (pid ${j.pid}) — this is a real OS kill, not an animation`, "sys");
