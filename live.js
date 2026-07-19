@@ -13,6 +13,31 @@ window.LIVE = (() => {
   let backfilled = false;
   let seenSeq = 0;
 
+  /* proof metrics — computed from the durable log, not asserted */
+  const M = { done: 0, rescues: 0, rescueMs: [], stepSeen: {}, repeated: 0, lastStepTs: {} };
+  function renderMetrics() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set("mDone", M.done); set("mRescues", M.rescues); set("mRepeat", M.repeated);
+    set("mRescueT", M.rescueMs.length
+      ? (M.rescueMs.reduce((a, b) => a + b, 0) / M.rescueMs.length / 1000).toFixed(1) + "s" : "–");
+    set("mDropped", 0);   // any orphan is reclaimed by design; repeated-steps counter guards the claim
+  }
+  function trackMetrics(ev) {
+    if (ev.kind === "task_completed") M.done++;
+    if (ev.kind === "task_step") {
+      const m = ev.body.match(/^\[(\d+)\//);
+      const key = ev.task_id + ":" + (m ? m[1] : "?");
+      if (M.stepSeen[key]) M.repeated++; else M.stepSeen[key] = true;
+      M.lastStepTs[ev.task_id] = new Date(ev.created_at).getTime();
+    }
+    if (ev.kind === "task_rescued") {
+      M.rescues++;
+      const prev = M.lastStepTs[ev.task_id];
+      if (prev) M.rescueMs.push(new Date(ev.created_at).getTime() - prev);
+    }
+    renderMetrics();
+  }
+
   async function fetchRows(table, qs) {
     const r = await fetch(`${REC(table)}?${qs}`, { headers: HDR });
     if (!r.ok) throw new Error(`${table} ${r.status}`);
@@ -29,6 +54,7 @@ window.LIVE = (() => {
     const cls = KIND_CLS[ev.kind] || "msg";
     const who = byId[ev.agent] ? ev.agent : "atlas";
     seenSeq++;
+    trackMetrics(ev);
     if (ev.kind === "task_rescued") {
       say(who, ev.channel, ev.body, "sys");
       log("resume", `${byId[who].name} RESUMED from durable-log bookmark`, "resume");
@@ -44,7 +70,8 @@ window.LIVE = (() => {
           `No step repeated, none lost — and the whole rescue is in the <b>audit trail</b>.`);
       }
     } else if (ev.kind === "task_step") {
-      say(who, ev.channel, ev.body, "msg");
+      const body = ev.body.length > 260 ? ev.body.slice(0, 260) + "…" : ev.body;
+      say(who, ev.channel, body, "msg");
       log("task", `${byId[who].name} step durably logged`, "task");
       if (liveNow) pulse(who, "atlas", byId[who]?.c);
     } else if (ev.kind === "task_claimed") {

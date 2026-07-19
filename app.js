@@ -192,6 +192,10 @@ function setPresence(id,st,task){
   updateStats();
 }
 
+/* ---------- proof-metric chips (live mode computes these from the durable log;
+   scripted mode mirrors the same beats) ---------- */
+function bumpMetric(id, v){ const el=document.getElementById(id); if(el) el.textContent = v!==undefined? v : (+el.textContent||0)+1; }
+
 /* ---------- inline icon helper (no emojis) ---------- */
 function ic(name,cls){ return `<svg class="mi ${cls||''}"><use href="#i-${name}"/></svg>`; }
 
@@ -354,6 +358,7 @@ async function killAndResume(){
   say("nova","#handoffs",`Discharge: Rosa Delgado · 5/5 ${ic("check","g")}handoff note sent — patient never dropped`,"msg");
   log("task", "nova COMPLETED discharge:rosa-delgado", "task");
 
+  bumpMetric("mRescues"); bumpMetric("mDone"); bumpMetric("mRescueT","2.4s");
   showToast("scene-resume.png","HANDOFF NEVER DROPPED",
     "David was killed mid-discharge. Because every step rides a durable log, the handoff was <b>anycast</b> to Nova, who <b>resumed from the exact bookmark</b> and finished it. The patient was never dropped — and the whole rescue is in the <b>audit trail</b>.");
   await wait(2600);
@@ -573,7 +578,9 @@ async function boot(){
   }
   if(forced==="live" && !liveOk)
     say("atlas","#handoffs","live mesh unreachable — falling back to scripted demo mode (start with: node server.js --mesh)","sys");
-  document.querySelector(".live").innerHTML='<span class="dot"></span> Demo · scripted';
+  const badge=document.querySelector(".live");
+  badge.innerHTML='<span class="dot"></span> Demo · scripted';
+  badge.title='Scripted projector mode. The full live engine (8 real agent processes, real kills) runs from the mesh laptop: node server.js --mesh';
 
   // Restore the durable log from InsForge — proves the record survives a reload.
   const hist = await IF.loadHistory();

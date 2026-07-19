@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cotal · Care Deck</title>
+<link rel="icon" type="image/png" href="assets/orbs/orb-atlas.png" />
 <style>
   :root{
     --bg:#050505; --panel:#0d0d0f; --card:#141416; --card2:#1a1a1e;
@@ -186,9 +187,20 @@
   @keyframes rot{to{transform:rotate(360deg)}}
   .loading .lt{color:var(--dim);letter-spacing:2px;font-size:12px;text-transform:uppercase;font-family:var(--mono)}
 
+  /* proof metrics on the graph */
+  .metrics{position:absolute;bottom:62px;right:20px;z-index:3;display:flex;gap:8px;pointer-events:none}
+  .mchip{background:rgba(13,13,15,.72);border:1px solid var(--line2);border-radius:12px;
+    padding:7px 12px;text-align:center;backdrop-filter:blur(6px)}
+  .mchip .mv{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+  .mchip .ml{font-size:8px;color:var(--faint);letter-spacing:.7px;text-transform:uppercase;margin-top:4px;font-family:var(--mono)}
+  .mchip.good .mv{color:var(--lime)}
+  .mchip.zero .mv{color:var(--lime)}
+
   /* legend on the graph */
-  .legend{position:absolute;bottom:18px;left:24px;z-index:3;display:flex;gap:16px;align-items:center;
-    flex-wrap:wrap;font-size:10px;color:var(--faint);font-family:var(--mono);pointer-events:none;max-width:70%}
+  .legend{position:absolute;bottom:14px;left:20px;z-index:3;display:flex;gap:14px;align-items:center;
+    flex-wrap:wrap;font-size:10px;color:var(--faint);font-family:var(--mono);pointer-events:none;max-width:96%;
+    background:rgba(13,13,15,.72);border:1px solid var(--line);border-radius:12px;padding:7px 12px;
+    backdrop-filter:blur(6px)}
   .legend span{display:inline-flex;align-items:center;gap:6px}
   .legend .lg-line{width:16px;height:2px;background:rgba(255,255,255,.4);border-radius:2px}
   .legend .lg-dot{width:7px;height:7px;border-radius:50%}
@@ -254,6 +266,13 @@
       <div class="stage-title">
         <div class="k">Hospital Ops Mesh · durable log</div>
         <div class="v">handoffs · presence · anycast · audit replay · synthetic data, ops-assist only</div>
+      </div>
+      <div class="metrics" id="metrics">
+        <div class="mchip good"><div class="mv" id="mDone">0</div><div class="ml">handoffs done</div></div>
+        <div class="mchip good"><div class="mv" id="mRescues">0</div><div class="ml">rescues</div></div>
+        <div class="mchip"><div class="mv" id="mRescueT">–</div><div class="ml">avg rescue</div></div>
+        <div class="mchip zero"><div class="mv" id="mRepeat">0</div><div class="ml">steps repeated</div></div>
+        <div class="mchip zero"><div class="mv" id="mDropped">0</div><div class="ml">handoffs dropped</div></div>
       </div>
       <div class="legend">
         <span><i class="lg-line"></i> handoff flow</span>
