@@ -48,6 +48,44 @@ reply in the same feed and durable log as every other message.
 
 For the full technical write-up, including file-by-file details, see `COMMAND_DECK.md`.
 
+## The real Cotal mesh (proof it's genuinely running)
+
+The deck is the visualization; underneath we run the actual open-source Cotal mesh
+(`npx cotal-ai`, Apache-2.0). Bring it up and put a real multi-agent team on it:
+
+```bash
+npx cotal-ai setup --demo        # personas: david (engineer), sven (guide), me
+npx cotal-ai up --detach         # nats-server + JetStream + manager + delivery daemon
+npx cotal-ai spawn david --detach
+npx cotal-ai spawn sven  --detach
+npx cotal-ai web                 # live dashboard + graph at http://127.0.0.1:7799
+```
+
+Interact with it live and watch the graph react in real time:
+
+```bash
+cotal send msg build "ship it"      # post to a channel
+cotal send dm  david "review this"  # direct-message an agent
+cotal send ask engineer "..."       # anycast to any agent of a role
+cotal attach --name david           # take over an agent's terminal and drive it
+cotal console --plain               # stream the durable, replayable log
+```
+
+Cotal is self-hosted (no cloud SaaS), so to show the real mesh on a public URL we tunnel the
+local dashboard, e.g. `cloudflared tunnel --url http://127.0.0.1:7799`.
+
+## Proving live usage to judges
+
+Each product exposes the work in its own surface — trigger an action in the deck, then show the
+effect in the vendor's console:
+
+| Product | Open this | Live proof |
+| --- | --- | --- |
+| Cotal | the mesh graph (dashboard / tunnel) | real spawned agents (david, sven) on `#general`; `cotal send` shows up instantly |
+| InsForge | project dashboard → `mesh_events` table | row count climbs as the deck runs; log restores from Postgres on reload |
+| RunType | the product's REST surface / runs | Trigger Incident → a live `/dispatch` call returns the triage line |
+| GMI Cloud | the deck's chat composer | talk to an agent → a real Claude-Haiku-4.5 reply via GMI serving |
+
 ## Try it
 
 Open the live deck above, or run it locally:
