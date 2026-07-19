@@ -90,22 +90,30 @@ window.LIVE = (() => {
     }
   }
 
+  let polling = false;
+  const seenIds = new Set();
   async function pollLog() {
-    const rows = await fetchRows("mesh_log",
-      `created_at=gt.${encodeURIComponent(lastTs)}&order=created_at.asc&limit=120`);
-    for (const ev of rows) {
-      render(ev, backfilled);
-      lastTs = ev.created_at;
-    }
-    if (!backfilled && rows.length < 120) {
-      backfilled = true;
-      const div = document.createElement("div");
-      div.className = "restore-divider";
-      div.textContent = `⇡ replayed ${seenSeq} events from the durable log (InsForge Postgres)`;
-      document.getElementById("ledger").appendChild(div);
-    }
-    document.getElementById("stIf").textContent = seenSeq;
-    document.getElementById("ifDot").className = "ifdot ok";
+    if (polling) return;                       // overlapping slow polls double-render
+    polling = true;
+    try {
+      const rows = await fetchRows("mesh_log",
+        `created_at=gt.${encodeURIComponent(lastTs)}&order=created_at.asc&limit=120`);
+      for (const ev of rows) {
+        lastTs = ev.created_at;
+        if (seenIds.has(ev.id)) continue;      // exactly-once render, like the log itself
+        seenIds.add(ev.id);
+        render(ev, backfilled);
+      }
+      if (!backfilled && rows.length < 120) {
+        backfilled = true;
+        const div = document.createElement("div");
+        div.className = "restore-divider";
+        div.textContent = `⇡ replayed ${seenSeq} events from the durable log (InsForge Postgres)`;
+        document.getElementById("ledger").appendChild(div);
+      }
+      document.getElementById("stIf").textContent = seenSeq;
+      document.getElementById("ifDot").className = "ifdot ok";
+    } finally { polling = false; }
   }
 
   /* ---------- presence: agent_state heartbeats ---------- */
@@ -115,7 +123,7 @@ window.LIVE = (() => {
     for (const a of rows) {
       if (!byId[a.aid]) continue;
       const hb = a.heartbeat_at ? new Date(a.heartbeat_at).getTime() : 0;
-      const stale = now - hb > 6500;
+      const stale = now - hb > 32000;   // match engine STALE_MS + margin
       const st = stale ? "offline" : (a.status === "working" ? "working" : "idle");
       if (S.presence[a.aid] !== st || S.tasks[a.aid] !== (a.task_label || "")) {
         if (st === "offline" && S.presence[a.aid] !== "offline") {
@@ -252,9 +260,9 @@ window.LIVE = (() => {
     document.getElementById("btnIncident").onclick = () => { switchTab("feed"); surge(); };
     await pollLog().catch(() => {});
     timers = [
-      setInterval(() => pollLog().catch(() => {}), 1000),
-      setInterval(() => pollPresence().catch(() => {}), 1500),
-      setInterval(() => pollCensus().catch(() => {}), 2500),
+      setInterval(() => pollLog().catch(() => {}), 2000),
+      setInterval(() => pollPresence().catch(() => {}), 3000),
+      setInterval(() => pollCensus().catch(() => {}), 4500),
     ];
     pollPresence().catch(() => {}); pollCensus().catch(() => {});
   }
