@@ -106,6 +106,7 @@ window.LIVE = (() => {
   }
 
   /* ---------- census panel ---------- */
+  let censusLine = "";
   async function pollCensus() {
     const el = document.getElementById("census");
     if (!el) return;
@@ -113,22 +114,31 @@ window.LIVE = (() => {
       fetchRows("patients", "order=acuity.asc&limit=20"),
       fetchRows("care_tasks", "limit=40"),
     ]);
+    const byTid = Object.fromEntries(tasks.map(t => [t.tid, t]));
     const byPatient = {};
     tasks.forEach(t => { (byPatient[t.patient_id] = byPatient[t.patient_id] || []).push(t); });
+    const openN = tasks.filter(t => t.status !== "completed").length;
+    const doneN = tasks.filter(t => t.status === "completed").length;
+    censusLine = `Live census: ${patients.length} patients, ${openN} open handoffs, ${doneN} completed. ` +
+      tasks.filter(t => t.status === "in_progress").slice(0, 5)
+        .map(t => `${t.title} (${t.owner_agent}, step ${t.bookmark}/${(t.steps || []).length})`).join("; ");
     el.innerHTML = patients.map(p => {
       const open = (byPatient[p.pid] || []).filter(t => t.status !== "completed");
       const t = open[0];
       const total = t ? (t.steps || []).length : 0;
       const pct = t && total ? Math.round(100 * (t.bookmark || 0) / total) : 0;
       const owner = t && t.owner_agent && byId[t.owner_agent];
+      const blocked = t && t.depends_on && byTid[t.depends_on] && byTid[t.depends_on].status !== "completed";
       return `<div class="crow">
         <span class="cdot a${p.acuity}"></span>
         <span class="cname">${p.name}</span>
         <span class="cmrn">${p.mrn} · ${p.age}${p.sex}</span>
         <span class="ccond">${(p.conditions || []).join(", ")}</span>
-        ${t ? `<span class="ctask" style="--oc:${owner ? owner.c : "#666"}">
+        ${t ? (blocked
+            ? `<span class="ctask done">⛓ ${t.title.split(":")[0]} · waiting on ${byTid[t.depends_on].title.split(":")[0]}</span>`
+            : `<span class="ctask" style="--oc:${owner ? owner.c : "#666"}">
                  ${t.title.split(":")[0]} · ${owner ? owner.name : "queued"}
-                 <i class="cbar"><b style="width:${pct}%"></b></i></span>`
+                 <i class="cbar"><b style="width:${pct}%"></b></i></span>`)
             : `<span class="ctask done">no open handoffs</span>`}
       </div>`;
     }).join("");
@@ -222,5 +232,5 @@ window.LIVE = (() => {
     pollPresence().catch(() => {}); pollCensus().catch(() => {});
   }
 
-  return { init };
+  return { init, contextLine: () => censusLine };
 })();

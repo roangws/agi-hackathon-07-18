@@ -529,7 +529,9 @@ function initComposer(){
     const wasOff = S.presence[id]==="offline";
     if(!wasOff){ setPresence(id,"working","thinking…"); pulse("atlas",id,byId[id].c,true); }
     try{
-      const reply = GMI.on ? await GMI.ask(PERSONAS[id]||"", msg) : null;
+      // live mode: ground the reply in the actual census (tool-augmented chat)
+      const ctx = (S.live && window.LIVE && LIVE.contextLine()) ? ` Current data: ${LIVE.contextLine()}` : "";
+      const reply = GMI.on ? await GMI.ask((PERSONAS[id]||"")+ctx, msg) : null;
       if(reply){
         say(id, `#chat`, reply, "msg");
         log("message", `${byId[id].name} replied (GMI live)`, "msg");
