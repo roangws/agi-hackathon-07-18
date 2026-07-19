@@ -53,13 +53,31 @@ async function llm(system, message) {
   return text;
 }
 
+/* Tool: pull live context from Postgres so each step reasons over the actual
+   record — the patient row plus any sibling tasks in flight for them. */
+async function fetchContext(task) {
+  try {
+    const [pat, siblings] = await Promise.all([
+      db.q("patients", `pid=eq.${task.patient_id}&limit=1`),
+      db.q("care_tasks", `patient_id=eq.${task.patient_id}&tid=neq.${task.tid}&limit=6`),
+    ]);
+    const p = pat[0];
+    const sib = siblings.map(s =>
+      `${s.title} [${s.status}${s.owner_agent ? " · " + s.owner_agent : ""} · step ${s.bookmark}/${(s.steps || []).length}]`).join("; ");
+    return `LIVE RECORD — patient: ${p.name}, ${p.mrn}, ${p.age}${p.sex}, acuity ${p.acuity}, ${(p.conditions || []).join("; ")}. ` +
+      (sib ? `Other open work for this patient: ${sib}. ` : "") +
+      (task.depends_on ? `This task was unblocked by ${task.depends_on}. ` : "");
+  } catch { return ""; }
+}
+
 async function runStep(task, step) {
   let text;
   const stepSystem = `You are ${AGENT.name}, a hospital operations agent executing the task "${task.title}" (${task.kind}). ` +
-    `Produce ONLY the artifact the current step asks for — no role commentary. ` +
+    `Produce ONLY the artifact the current step asks for — no role commentary, max 25 words. ` +
     `Synthetic drill; operations only; never give medical advice.`;
   try {
-    text = await llm(stepSystem, step.prompt);
+    const context = await fetchContext(task);
+    text = await llm(stepSystem, context + step.prompt);
   } catch (e) {
     text = step.fallback;            // engine liveness never depends on the LLM
   }
@@ -109,8 +127,25 @@ async function workTask(task, rescuedFrom) {
     agent: ME, channel: AGENT.channel, kind: "task_completed",
     body: `completed <b>${task.title}</b> — all ${total} steps durably logged`, task_id: task.tid,
   });
+  await notifyDependents(task);
   currentTask = null;
   await setState("idle", "");
+}
+
+/* Coordination: finishing a task unblocks its dependents — tell the specialist
+   whose lane it is, durably, over the mesh. */
+async function notifyDependents(task) {
+  try {
+    const deps = await db.q("care_tasks", `depends_on=eq.${task.tid}&status=eq.requested&limit=5`);
+    for (const d of deps) {
+      const owner = Object.values(byId).find(a => a.kind === d.kind);
+      await db.logEvent({
+        agent: ME, channel: `DM → ${owner ? owner.name : "team"}`, kind: "dm",
+        body: `<b>${task.title}</b> done — <b>${d.title}</b> is unblocked, clear to claim`,
+        task_id: d.tid,
+      });
+    }
+  } catch {}
 }
 
 /* ---------- idle ambience: a real persona line now and then ---------- */
@@ -134,7 +169,7 @@ async function idleChatter() {
     try {
       const rescue = await db.claimStale(ME, staleISO());
       if (rescue) { await workTask(rescue.task, rescue.from); continue; }
-      const fresh = await db.claimNew(ME);
+      const fresh = await db.claimNew(ME, AGENT.kind);
       if (fresh) { await workTask(fresh, null); continue; }
       await idleChatter();
     } catch (e) {
