@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cotal · Command Deck</title>
+<title>Cotal · Care Deck</title>
 <style>
   :root{
     --bg:#050505; --panel:#0d0d0f; --card:#141416; --card2:#1a1a1e;
@@ -229,8 +229,8 @@
     <div class="brand">
       <img class="emblem" id="emblem" alt="Cotal" />
       <div>
-        <h1>Cotal <span>Command Deck</span></h1>
-        <div class="sub"><b>Slack for your agents</b> · live multi-agent mesh</div>
+        <h1>Cotal <span>Care Deck</span></h1>
+        <div class="sub"><b>Slack for clinical agents</b> · a memory that outlives the shift</div>
       </div>
     </div>
     <div class="stats">
@@ -252,11 +252,11 @@
       <canvas id="mesh"></canvas>
       <div id="stageFlash"></div>
       <div class="stage-title">
-        <div class="k">Mesh Graph · NATS / JetStream</div>
-        <div class="v">channels · DMs · presence · anycast · durable replay</div>
+        <div class="k">Hospital Ops Mesh · durable log</div>
+        <div class="v">handoffs · presence · anycast · audit replay · synthetic data, ops-assist only</div>
       </div>
       <div class="legend">
-        <span><i class="lg-line"></i> message flow</span>
+        <span><i class="lg-line"></i> handoff flow</span>
         <span><i class="lg-dot work"></i> working</span>
         <span><i class="lg-dot idle"></i> idle</span>
         <span><i class="lg-dot off"></i> terminated</span>
@@ -303,7 +303,7 @@
 
 <div class="loading" id="loading">
   <div class="spin"></div>
-  <div class="lt">Booting Cotal mesh…</div>
+  <div class="lt">Booting Cotal care mesh…</div>
 </div>
 
 <script src="insforge-config.js"></script>

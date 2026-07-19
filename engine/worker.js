@@ -55,8 +55,11 @@ async function llm(system, message) {
 
 async function runStep(task, step) {
   let text;
+  const stepSystem = `You are ${AGENT.name}, a hospital operations agent executing the task "${task.title}" (${task.kind}). ` +
+    `Produce ONLY the artifact the current step asks for — no role commentary. ` +
+    `Synthetic drill; operations only; never give medical advice.`;
   try {
-    text = await llm(AGENT.persona, step.prompt);
+    text = await llm(stepSystem, step.prompt);
   } catch (e) {
     text = step.fallback;            // engine liveness never depends on the LLM
   }

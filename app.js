@@ -50,16 +50,16 @@ const IF = (() => {
   };
 })();
 
-/* ---------- agents ---------- */
+/* ---------- clinical ops agents (synthetic drill — ops assist, not medical advice) ---------- */
 const AGENTS = [
-  {id:"atlas",  name:"Atlas",  role:"Orchestrator", c:"#f5b642", center:true},
-  {id:"david",  name:"David",  role:"Engineer",     c:"#3b82f6"},
-  {id:"nova",   name:"Nova",   role:"Reviewer",     c:"#22c55e"},
-  {id:"sven",   name:"Sven",   role:"Guide",        c:"#8b5cf6"},
-  {id:"echo",   name:"Echo",   role:"Researcher",   c:"#06b6d4"},
-  {id:"vega",   name:"Vega",   role:"Ops Sentinel", c:"#f97316"},
-  {id:"iris",   name:"Iris",   role:"Designer",     c:"#ec4899"},
-  {id:"zephyr", name:"Zephyr", role:"Analyst",      c:"#14b8a6"},
+  {id:"atlas",  name:"Atlas",  role:"Charge Nurse",  c:"#f5b642", center:true},
+  {id:"david",  name:"David",  role:"Discharge",     c:"#3b82f6"},
+  {id:"nova",   name:"Nova",   role:"Pharmacy",      c:"#22c55e"},
+  {id:"sven",   name:"Sven",   role:"Bed Flow",      c:"#8b5cf6"},
+  {id:"echo",   name:"Echo",   role:"Labs",          c:"#06b6d4"},
+  {id:"vega",   name:"Vega",   role:"Imaging",       c:"#f97316"},
+  {id:"iris",   name:"Iris",   role:"Triage",        c:"#ec4899"},
+  {id:"zephyr", name:"Zephyr", role:"Transport",     c:"#14b8a6"},
 ];
 const byId = Object.fromEntries(AGENTS.map(a=>[a.id,a]));
 
@@ -278,16 +278,16 @@ setInterval(()=>document.getElementById("stUp").textContent=clock(),500);
 
 /* ---------- ambient chatter ---------- */
 const CHATTER=[
-  ["david","#build","pushing the auth refactor to the mesh branch","msg"],
-  ["nova","#review","LGTM on the payload schema — one nit on retries","msg"],
-  ["echo","#build","found 3 relevant papers on durable delivery, linking","msg"],
-  ["iris","#build","new dashboard tokens are in, dark theme locked","msg"],
-  ["zephyr","#ops","throughput steady at 1.2k msg/s across the mesh","msg"],
-  ["sven","#build","reminder: everything here replays from JetStream","msg"],
-  ["vega","#ops","presence heartbeat nominal on all nodes","msg"],
-  ["david","#review","addressed feedback, re-requesting review","msg"],
-  ["nova","#review",`approved ${ic("check","g")}merging`,"msg"],
-  ["echo","#build","embedding the new docs into shared memory","msg"],
+  ["iris","#handoffs","front-door queue clear — last arrival triaged and routed","msg"],
+  ["nova","#pharmacy","med-rec complete for MRN-1002 — two flags to the pharmacist","msg"],
+  ["echo","#rapid-response","no critical values outstanding — result queue current","msg"],
+  ["sven","#bed-flow","4 West has two clean beds ready — flagged to triage","msg"],
+  ["zephyr","#bed-flow","transport dispatched to radiology, avg move 9 min","msg"],
+  ["david","#handoffs","three discharges tracking for the morning window","msg"],
+  ["vega","#rapid-response","CT queue at 18 min turnaround — within target","msg"],
+  ["atlas","#handoffs","census at 84% — every open handoff has an owner","msg"],
+  ["nova","#pharmacy",`reconciled list published ${ic("check","g")}chart updated`,"msg"],
+  ["echo","#rapid-response","morning draw results filed — loop closed on 4 East","msg"],
 ];
 let chatIdx=0;
 function chatter(){
@@ -309,99 +309,98 @@ function dm(){
   if(!S.playing||S.busy) return;
   const a=RING[Math.floor(Math.random()*RING.length)];
   let b=RING[Math.floor(Math.random()*RING.length)]; if(b===a) b=RING[(RING.indexOf(a)+1)%RING.length];
-  say(a,`DM → ${byId[b].name}`,"syncing state before I hand this off","dm");
+  say(a,`DM → ${byId[b].name}`,"syncing handoff state before shift change","dm");
   log("dm", `${byId[a].name} ⇢ ${byId[b].name} (durable)`, "dm");
   pulse(a,b,"#ec8fff",true);
 }
 
-/* ---------- THE KILL / RESUME BEAT ---------- */
+/* ---------- THE KILL / RESUME BEAT (scripted fallback) ---------- */
 async function killAndResume(){
   if(S.busy) return; S.busy=true;
-  // ensure a clear "victim" is actively working on a real task
+  // ensure a clear "victim" is actively working on a real handoff
   const victim = byId.david;
-  setPresence("david","working","building payments-service · 62%");
-  say("david","#build","claimed task <b>build:payments-service</b> — working…","msg");
-  log("task", "david CLAIMED build:payments-service", "task");
+  setPresence("david","working","Discharge: Rosa Delgado · step 3/5");
+  say("david","#handoffs","claimed handoff <b>Discharge: Rosa Delgado</b> (MRN-1001) — drafting follow-up plan…","msg");
+  log("task", "david CLAIMED discharge:rosa-delgado", "task");
   await wait(1400);
 
   // DEATH
   const el=nodes.david; el.classList.add("dying");
   burst(byId.david.x, byId.david.y);
   flashScene("scene-death.png");
-  say("vega","#ops",`${ic("flatline","r")}node <b>david</b> lost heartbeat — process terminated`,"sys");
+  say("vega","#rapid-response",`${ic("flatline","r")}worker <b>david</b> lost heartbeat mid-discharge — process terminated`,"sys");
   log("presence", "david → OFFLINE (heartbeat lost)", "presence");
-  log("death", "david TERMINATED mid-task (task orphaned)", "death");
+  log("death", "david TERMINATED mid-handoff (handoff orphaned)", "death");
   await wait(500);
   setPresence("david","offline","");
   el.classList.remove("dying");
   await wait(900);
 
-  // ANYCAST reclaim — task is durable, not lost
-  say("atlas","#ops","task <b>build:payments-service</b> orphaned — anycast to any available engineer","sys");
-  log("anycast", "atlas ANYCAST build:payments-service → role:engineer", "anycast");
-  // route packet visibly from atlas to the rescuer
+  // ANYCAST reclaim — the handoff is durable, not lost
+  say("atlas","#handoffs","handoff <b>Discharge: Rosa Delgado</b> orphaned — anycast to any available coordinator","sys");
+  log("anycast", "atlas ANYCAST discharge:rosa-delgado → role:discharge", "anycast");
   const rescuer = byId.nova;
   pulse("atlas","nova","#f5b642",true);
   flashScene("scene-anycast.png");
   await wait(900);
 
   // RESUME from durable log bookmark
-  setPresence("nova","working","resuming payments-service @ bookmark #"+ (S.seq-2));
+  setPresence("nova","working","resuming Rosa Delgado @ bookmark #3");
   nodes.nova.classList.add("reborn");
   flashScene("scene-resume.png");
-  say("nova","#build","claimed orphaned task — <b>replaying from JetStream bookmark</b> #"+(S.seq-2)+" … resuming at 62%","msg");
-  log("resume", "nova CLAIMED + RESUMED from durable log (no work lost)", "resume");
+  say("nova","#handoffs","claimed orphaned handoff — <b>replaying the durable audit log</b>, resuming at step 3 of 5. No step repeated, none lost.","msg");
+  log("resume", "nova CLAIMED + RESUMED from durable log (no step lost)", "resume");
   await wait(1400);
-  say("nova","#build",`payments-service · 100% ${ic("check","g")}done — zero work lost`,"msg");
-  log("task", "nova COMPLETED build:payments-service", "task");
+  say("nova","#handoffs",`Discharge: Rosa Delgado · 5/5 ${ic("check","g")}handoff note sent — patient never dropped`,"msg");
+  log("task", "nova COMPLETED discharge:rosa-delgado", "task");
 
-  showToast("scene-resume.png","AGENT SURVIVED DEATH",
-    "David was killed mid-task. Because every message rides a durable JetStream log, the task was <b>anycast</b> to Nova, who <b>replayed from the exact bookmark</b> and finished it. Nothing was lost.");
+  showToast("scene-resume.png","HANDOFF NEVER DROPPED",
+    "David was killed mid-discharge. Because every step rides a durable log, the handoff was <b>anycast</b> to Nova, who <b>resumed from the exact bookmark</b> and finished it. The patient was never dropped — and the whole rescue is in the <b>audit trail</b>.");
   await wait(2600);
   setPresence("nova","idle","");
   nodes.nova.classList.remove("reborn");
   S.busy=false;
 }
 
-/* ---------- incident ---------- */
+/* ---------- ED surge (scripted fallback) ---------- */
 async function incident(){
   if(S.busy) return; S.busy=true;
   document.getElementById("stageBg").style.transition="background-image .4s";
-  say("vega","#incident",`${ic("bolt","r")}<b>INCIDENT</b>: error rate spike in payments — opening incident room`,"sys");
-  log("presence","vega OPENED #incident","presence");
+  say("vega","#rapid-response",`${ic("bolt","r")}<b>ED SURGE</b>: census 142%, 6 boarding, 2 ambulances inbound — opening rapid response`,"sys");
+  log("presence","vega OPENED #rapid-response","presence");
   flashScene("scene-incident.png");
-  RING.forEach((id,i)=> setTimeout(()=>{ if(S.presence[id]!=="offline"){ setPresence(id,"working","triaging…"); pulse(id,"atlas",byId[id].c);} }, i*160));
+  RING.forEach((id,i)=> setTimeout(()=>{ if(S.presence[id]!=="offline"){ setPresence(id,"working","surge triage…"); pulse(id,"atlas",byId[id].c);} }, i*160));
   await wait(1200);
-  say("echo","#incident","correlating logs — spike started 40s ago on payments-service","msg");
-  log("message","echo → #incident","msg");
+  say("echo","#rapid-response","pulling pending results forward for the 6 boarding patients","msg");
+  log("message","echo → #rapid-response","msg");
   await wait(700);
 
   // Live RunType agent triage — real API call to a deployed flow.
-  const incidentLog="payments-service error rate spiked 400% in 40s, retry storm, p99 latency 4s";
-  const prompt=`You are an incident triage bot. Reply with EXACTLY one line in this format and nothing else: <one concise sentence> — severity: <low|medium|high>. Incident: ${incidentLog}`;
+  const surgeLog="ED census at 142%, 6 boarding in the ED, 2 ambulances inbound, 4 clean beds across the house";
+  const prompt=`You are a hospital operations surge-triage bot (synthetic drill, operations only — no medical advice). Reply with EXACTLY one line in this format and nothing else: <one concise ops recommendation> — severity: <low|medium|high>. Situation: ${surgeLog}`;
   let summary=null;
   if(RT.on){
-    say("sven","#incident",`${ic("route","y")}dispatching to <b>RunType agent</b> for triage…`,"sys");
+    say("sven","#rapid-response",`${ic("route","y")}dispatching to <b>RunType agent</b> for surge triage…`,"sys");
     summary=await RT.ask(prompt);
   }
   if(summary){
-    say("sven","#incident",`${ic("bolt","y")}<b>RunType agent</b>: ${summary}`,"sys");
-    log("message","RunType triage → #incident","msg");
+    say("sven","#rapid-response",`${ic("bolt","y")}<b>RunType agent</b>: ${summary}`,"sys");
+    log("message","RunType surge triage → #rapid-response","msg");
   } else {
-    say("nova","#incident","reproduced. root cause: retry storm. proposing fix","msg");
-    log("message","nova → #incident","msg");
+    say("sven","#rapid-response","recommend: open surge unit, pull two floor beds forward — severity: high","msg");
+    log("message","sven → #rapid-response","msg");
   }
   await wait(900);
-  say("atlas","#incident","assigning fix via anycast → engineer","sys");
-  log("anycast","atlas ANYCAST hotfix → role:engineer","anycast");
-  pulse("atlas","david","#f97316",true);
+  say("atlas","#rapid-response","assigning bed pulls via anycast → bed-flow + transport","sys");
+  log("anycast","atlas ANYCAST surge-plan → role:bed-flow","anycast");
+  pulse("atlas","sven","#f97316",true);
   await wait(1000);
-  say("david","#incident",`hotfix shipped ${ic("check","g")}error rate back to baseline`,"msg");
-  log("resume","incident RESOLVED · full timeline in durable log","resume");
-  showToast("scene-incident.png","INCIDENT TRIAGED LIVE BY RUNTYPE",
+  say("sven","#rapid-response",`two beds pulled forward ${ic("check","g")}boarding count dropping`,"msg");
+  log("resume","surge RESOLVED · full timeline in durable audit log","resume");
+  showToast("scene-incident.png","SURGE TRIAGED LIVE BY RUNTYPE",
     summary
-      ? `A deployed <b>RunType</b> agent triaged it in real time:<br><b>"${summary}"</b><br>The team fixed it over the mesh — full timeline in the <b>replayable record</b>.`
-      : "The whole team swarmed <b>#incident</b>, coordinated over the mesh, and the entire triage is preserved as a <b>replayable record</b>.");
+      ? `A deployed <b>RunType</b> agent triaged the surge in real time:<br><b>"${summary}"</b><br>The team executed it over the mesh — full timeline in the <b>audit trail</b>.`
+      : "The whole team swarmed <b>#rapid-response</b>, coordinated over the mesh, and the entire surge response is preserved as a <b>replayable audit record</b>.");
   await wait(2200);
   RING.forEach(id=>{ if(S.presence[id]!=="offline") setPresence(id,"idle",""); });
   S.busy=false;
@@ -411,8 +410,8 @@ async function incident(){
 async function replayLog(){
   if(S.busy) return; S.busy=true;
   switchTab("ledger");
-  showToast("scene-ledger.png","REPLAYING THE DURABLE LOG",
-    "A late-joining agent reconnects and replays the <b>entire ordered history</b> from JetStream before going live — this is what makes the mesh crash-proof.");
+  showToast("scene-ledger.png","REPLAYING THE AUDIT LOG",
+    "Every handoff step was written to the durable log as it happened. A late-joining agent — or an auditor — replays the <b>entire ordered history</b>. Crash-proof for the mesh, audit-ready for compliance.");
   await wait(1600);
   const rows=[...ledgerEl.querySelectorAll(".lrow")];
   for(const row of rows.slice(-14)){
@@ -502,14 +501,14 @@ const GMI = (() => {
 })();
 
 const PERSONAS = {
-  atlas:"You are Atlas, the orchestrator of a multi-agent mesh. You route and coordinate work. Reply in ONE or TWO short sentences.",
-  david:"You are David, a senior engineer agent. Practical, ships code. Reply in ONE or TWO short sentences.",
-  nova:"You are Nova, a terse code-reviewer agent. Blunt, quality-focused. Reply in ONE or TWO short sentences.",
-  sven:"You are Sven, a friendly guide agent who explains things simply. Reply in ONE or TWO short sentences.",
-  echo:"You are Echo, a researcher agent. You cite and summarize. Reply in ONE or TWO short sentences.",
-  vega:"You are Vega, an ops/SRE sentinel agent. Calm under fire, incident-focused. Reply in ONE or TWO short sentences.",
-  iris:"You are Iris, a product designer agent. Care about UX and clarity. Reply in ONE or TWO short sentences.",
-  zephyr:"You are Zephyr, a data analyst agent. Numbers-driven. Reply in ONE or TWO short sentences.",
+  atlas:"You are Atlas, the charge-nurse orchestrator agent of a hospital operations mesh (synthetic drill). You route handoffs and watch the census. Operations only — never give medical advice. Reply in ONE or TWO short sentences.",
+  david:"You are David, a discharge-coordination agent (synthetic drill). You assemble discharge summaries and handoff notes for clinician review. Operations only — never give medical advice. Reply in ONE or TWO short sentences.",
+  nova:"You are Nova, a pharmacy med-reconciliation agent (synthetic drill). You compare med lists and flag mismatches for the pharmacist. Operations only — never give medical advice. Reply in ONE or TWO short sentences.",
+  sven:"You are Sven, a bed-flow operations agent (synthetic drill). You match patients to unit beds and balance the census. Operations only — never give medical advice. Reply in ONE or TWO short sentences.",
+  echo:"You are Echo, a laboratory-operations agent (synthetic drill). You track pending results and route critical-value flags. Operations only — never give medical advice. Reply in ONE or TWO short sentences.",
+  vega:"You are Vega, an imaging-operations agent (synthetic drill). You track imaging queues and turnaround times. Operations only — never give medical advice. Reply in ONE or TWO short sentences.",
+  iris:"You are Iris, a triage-operations agent (synthetic drill). You assign ESI acuity and route patients to care areas. Operations only — never give medical advice. Reply in ONE or TWO short sentences.",
+  zephyr:"You are Zephyr, a patient-transport operations agent (synthetic drill). You dispatch and sequence patient moves. Operations only — never give medical advice. Reply in ONE or TWO short sentences.",
 };
 
 /* wire the live-chat composer */
@@ -594,7 +593,7 @@ async function boot(){
     ledgerEl.appendChild(liveDiv);
     ledgerEl.scrollTop=ledgerEl.scrollHeight; updateStats();
   }
-  log("presence","mesh online · 8 agents joined","presence");
+  log("presence","care mesh online · 8 clinical ops agents joined","presence");
   AGENTS.forEach((a,i)=> setTimeout(()=>log("presence",`${a.name} (${a.role}) JOINED`,"presence"), i*90));
   setTimeout(()=>document.getElementById("loading").classList.add("hide"), 700);
   // ambient loops
