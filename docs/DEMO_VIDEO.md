@@ -51,7 +51,7 @@ regulated operation."
 
 **Shot 8 (~2:00). CUE: same wide view, nothing new happens.**
 Read: "The agent dies. The work continues. The log proves it. AGI Hospital,
-built on Cotal, InsForge, GMI Cloud, and RunType."
+built on Cotal, InsForge, and RunType."
 
 Then stop the recording (⌘⇧5 → Stop, or ⏹ in the menu bar). File lands in
 ~/Documents. Upload to YouTube (unlisted) or Loom, paste the link in the

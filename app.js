@@ -539,10 +539,10 @@ function initComposer(){
       const reply = GMI.on ? await GMI.ask((PERSONAS[id]||"")+ctx, msg) : null;
       if(reply){
         say(id, `#chat`, reply, "msg");
-        log("message", `${byId[id].name} replied (GMI live)`, "msg");
+        log("message", `${byId[id].name} replied (live model)`, "msg");
         pulse(id,"atlas",byId[id].c);
       } else {
-        say(id, `#chat`, "(live model unavailable — is GMI enabled?)", "sys");
+        say(id, `#chat`, "(live model unavailable)", "sys");
       }
     }catch(e){
       say(id, `#chat`, "(model error — try again)", "sys");

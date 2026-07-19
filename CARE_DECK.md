@@ -14,12 +14,12 @@ clinical decision-making.
 │ server.js ── spawns ──► engine/worker.js × 8 (real procs)  │
 │    │  /mesh/kill = SIGKILL   /mesh/revive  /mesh/reset     │
 │    ▼                                │  every step:         │
-│ index.html + app.js + live.js       │  LLM call (GMI) →    │
+│ index.html + app.js + live.js       │  LLM call (Claude) → │
 │    (polls state, renders mesh)      │  durable log →       │
 └────────┬────────────────────────────┼──── bookmark++ ──────┘
          │                            ▼
    InsForge Postgres:  patients · care_tasks · mesh_log · agent_state
-   InsForge edge fns:  gmi-chat (Claude via GMI) · rt-triage (RunType)
+   InsForge edge fns:  gmi-chat (Claude) · rt-triage (RunType)
 ```
 
 ## The invariant (and its proof)
@@ -54,7 +54,7 @@ fail, so healthy agents are never robbed. `engine/test-claim.js` proves both rac
 1. Heartbeat `agent_state` (presence) every 2s; also heartbeat the owned task —
    guarded by `owner_agent=eq.me`, so a rescued-away task is detected and abandoned.
 2. Rescue stale handoffs first, else claim new work, else post an idle status line
-   (sometimes a live GMI line in persona).
+   (sometimes a live Claude line in persona).
 3. Per step: real LLM call → artifact durably logged → bookmark++ → repeat.
    LLM failure falls back to the step's canned text: engine liveness never depends
    on the model.
@@ -81,7 +81,7 @@ fail, so healthy agents are never robbed. `engine/test-claim.js` proves both rac
 4. Reload the page. *"The entire history replays from the durable log. Resilience
    and the HIPAA audit trail are the same primitive."*
 5. Optional: **Trigger Incident** (live RunType surge triage), then type a message
-   to any agent (live GMI reply in persona).
+   to any agent (live Claude reply in persona).
 
 ## Controls
 
@@ -91,7 +91,7 @@ fail, so healthy agents are never robbed. `engine/test-claim.js` proves both rac
 | `I` / Trigger Incident | ED surge + live RunType triage |
 | `R` / Replay | replay the ledger; in live mode a page reload is the real replay |
 | Census tab | synthetic patient board, acuity dots, per-handoff progress |
-| Composer | live GMI chat with any agent, in clinical-ops persona |
+| Composer | live Claude chat with any agent, in clinical-ops persona |
 | `?auto=kill\|replay` | kiosk auto-fire (live mode waits for a claim first) |
 
 ## Files
@@ -104,10 +104,10 @@ fail, so healthy agents are never robbed. `engine/test-claim.js` proves both rac
 - `engine/test-claim.js` / `engine/test-resume.js` — the two invariant proofs
 - `server.js` — static deck, RunType proxy, fleet spawn + `/mesh/*` control
 - `live.js` — live-mode adapter (polling → visual seams)
-- `app.js` — mesh visuals, scripted fallback beats, GMI chat composer
+- `app.js` — mesh visuals, scripted fallback beats, chat composer
 - `functions/gmi-chat.ts`, `functions/rt-triage.ts` — InsForge edge functions
-  keeping GMI/RunType keys server-side
-- `gen_images.py` / `gen_orbs.py` — GMI Cloud image API asset generation
+  keeping model/RunType keys server-side
+- `gen_images.py` / `gen_orbs.py` — image asset generation
 
 ## Ops notes
 

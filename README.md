@@ -36,7 +36,7 @@ orchestrator) over a Cotal-style mesh:
 
 - **Real work**: FHIR-shaped synthetic tasks (discharge summaries, med
   reconciliation, triage, bed assignment, lab follow-up); every step is a real LLM
-  call (Claude via GMI Cloud) whose artifact is durably logged to InsForge Postgres
+  call (Claude) whose artifact is durably logged to InsForge Postgres
   **before** the task's bookmark advances.
 - **Real death**: the Kill button (or your own `kill -9`) SIGKILLs a worker process.
   Its heartbeat lapses; the task is orphaned.
@@ -47,7 +47,7 @@ orchestrator) over a Cotal-style mesh:
   no step repeated, none lost.
 - **Real replay**: reload the page and the deck rebuilds the entire history from
   Postgres — the audit trail in action.
-- **Live chat**: talk to any agent; a real GMI Cloud model answers in that agent's
+- **Live chat**: talk to any agent; Claude answers in that agent's
   clinical-ops persona.
 - **ED surge beat**: a deployed RunType agent triages a live surge scenario.
 
@@ -100,7 +100,7 @@ effect in the vendor's console:
 | Cotal | the mesh graph (dashboard / tunnel) | real spawned agents (david, sven) on `#general`; `cotal send` shows up instantly |
 | InsForge | project dashboard → `mesh_events` table | row count climbs as the deck runs; log restores from Postgres on reload |
 | RunType | the product's REST surface / runs | Trigger Incident → a live `/dispatch` call returns the triage line |
-| GMI Cloud | the deck's chat composer | talk to an agent → a real Claude-Haiku-4.5 reply via GMI serving |
+| Claude | the deck's chat composer | talk to an agent → a live Claude Haiku 4.5 reply |
 
 ## Try it
 
@@ -129,7 +129,7 @@ long-lived workers).
 | Kill Working Agent (`K`) | real SIGKILL → heartbeat lapse → anycast rescue → resume from bookmark → **"HANDOFF NEVER DROPPED"** |
 | Trigger Incident (`I`) | ED surge; a real RunType agent returns live ops triage |
 | Replay / reload (`R`) | entire ordered history replays from the durable log |
-| Chat composer | any agent answers live via a GMI Cloud model |
+| Chat composer | any agent answers live via Claude |
 | Census tab | synthetic patient board with per-handoff progress, owner, acuity |
 
 ## Stack
@@ -138,7 +138,7 @@ long-lived workers).
 | --- | --- |
 | Cotal | the mesh concept: channels, presence, anycast, durable log |
 | InsForge | Postgres durable log + tables, edge functions, Sites hosting |
-| GMI Cloud | LLM inference for every agent step + chat (Claude Haiku), image gen for visuals |
+| Claude | LLM inference for every agent step + chat (Claude Haiku 4.5) |
 | RunType | deployed surge-triage agent |
 | Engine | zero-dependency Node: 8 worker processes, heartbeats, atomic claims |
 
