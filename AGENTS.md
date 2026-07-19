@@ -5,7 +5,7 @@
 
 This project uses [InsForge](https://insforge.dev): an all-in-one, open-source Postgres-based backend (BaaS) that gives this app a database, authentication, file storage, edge functions, realtime, an AI model gateway, and payments through one platform.
 
-- **Project:** **cotal-command-deck** (API base `https://87yur7k9.us-west.insforge.app`)
+- **Project:** **cotal-care-deck** (API base `https://t36addwd.us-west.insforge.app`) — hosts the deployed site (care-deck.insforge.site). The durable-log tables and edge functions live on the original **cotal-command-deck** backend (`https://87yur7k9.us-west.insforge.app`), which `.env` and `insforge-config.js` point at.
 - **Skills:** these InsForge skills are installed for supported coding agents. Reach for them before implementing any InsForge feature instead of guessing the API:
   - `insforge`: app code with the `@insforge/sdk` client (database CRUD, auth, storage, edge functions, realtime, AI, email, and Stripe payments).
   - `insforge-cli`: backend and infrastructure via the `insforge` CLI (projects, SQL, migrations, RLS policies, storage buckets, functions, secrets, payment setup, schedules, deploys).
