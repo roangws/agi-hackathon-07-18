@@ -56,26 +56,36 @@ function steps(kind, p) {
       mk("Notify ordering agent",     "Write a one-line notification note to the ordering team.",                 "Ordering team notified of resulted labs."),
       mk("File to chart",             "Write a one-line note confirming results filed to the chart.",             "Results filed to the chart; loop closed."),
     ];
+    case "transport-move": return [
+      mk("Dispatch transporter",      "Write a one-line transporter dispatch note (mode, pickup, destination).",  "Transporter dispatched to unit with wheelchair."),
+      mk("Move patient",              "Write a one-line in-transit note for the move.",                           "Patient in transit to assigned unit."),
+      mk("Confirm arrival",           "Write a one-line arrival confirmation + bed occupancy note.",              "Arrival confirmed; bed marked occupied."),
+    ];
   }
 }
 
+/* [tid, kind, title, patient, depends_on] — a task with depends_on is claimable
+   only after its parent completes; the finishing agent DMs the unblock. */
 const TASKS = [
-  ["t01", "discharge-summary",  "Discharge: Rosa Delgado",        "p01"],
-  ["t02", "triage-assessment",  "Triage: Caleb Nguyen",           "p12"],
-  ["t03", "med-reconciliation", "Med rec: Marcus Webb",           "p02"],
-  ["t04", "bed-assignment",     "Bed: Lena Okafor",               "p03"],
-  ["t05", "lab-followup",       "Labs: June Park",                "p05"],
-  ["t06", "discharge-summary",  "Discharge: Devon Cole",          "p08"],
-  ["t07", "med-reconciliation", "Med rec: Ahmed Hassan",          "p06"],
-  ["t08", "bed-assignment",     "Bed: Tomás Rivera",              "p04"],
-  ["t09", "lab-followup",       "Labs: Sam Whitfield",            "p10"],
-  ["t10", "triage-assessment",  "Triage: Bea Kowalski",           "p07"],
-  ["t11", "discharge-summary",  "Discharge: Priya Nair",          "p09"],
-  ["t12", "med-reconciliation", "Med rec: Ingrid Larsen",         "p11"],
-].map(([tid, kind, title, patient_id]) => {
+  ["t01", "discharge-summary",  "Discharge: Rosa Delgado",        "p01", "t13"],
+  ["t02", "triage-assessment",  "Triage: Caleb Nguyen",           "p12", null],
+  ["t03", "med-reconciliation", "Med rec: Marcus Webb",           "p02", null],
+  ["t04", "bed-assignment",     "Bed: Lena Okafor",               "p03", null],
+  ["t05", "lab-followup",       "Labs: June Park",                "p05", null],
+  ["t06", "discharge-summary",  "Discharge: Devon Cole",          "p08", null],
+  ["t07", "med-reconciliation", "Med rec: Ahmed Hassan",          "p06", null],
+  ["t08", "bed-assignment",     "Bed: Tomás Rivera",              "p04", null],
+  ["t09", "lab-followup",       "Labs: Sam Whitfield",            "p10", null],
+  ["t10", "triage-assessment",  "Triage: Bea Kowalski",           "p07", null],
+  ["t11", "discharge-summary",  "Discharge: Priya Nair",          "p09", null],
+  ["t12", "med-reconciliation", "Med rec: Ingrid Larsen",         "p11", null],
+  ["t13", "med-reconciliation", "Med rec: Rosa Delgado",          "p01", null],
+  ["t14", "transport-move",     "Transport: Lena Okafor",         "p03", "t04"],
+  ["t15", "transport-move",     "Transport: Tomás Rivera",        "p04", "t08"],
+].map(([tid, kind, title, patient_id, depends_on]) => {
   const p = PATIENTS.find(x => x.pid === patient_id);
   return {
-    tid, kind, title, patient_id,
+    tid, kind, title, patient_id, depends_on,
     status: "requested", owner_agent: null, heartbeat_at: null, bookmark: 0,
     steps: steps(kind, p).map((s, i) => ({ n: i + 1, ...s })),
     artifacts: [],

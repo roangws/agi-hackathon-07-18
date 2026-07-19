@@ -28,6 +28,7 @@ const TABLES = {
     col("bookmark", "integer"),      // last durably-logged step (0 = none)
     col("steps", "json"),            // [{n, label, prompt, fallback}]
     col("artifacts", "json"),        // [{n, text, by}]
+    col("depends_on", "string"),     // → care_tasks.tid; claimable only once parent completes
   ],
   mesh_log: [
     col("agent", "string"),
